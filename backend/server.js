@@ -1,9 +1,9 @@
 require('dotenv').config()
 
 const express = require('express')
-const mongoose = require('mongoose')
 const cors = require('cors')
 const userRoutes = require('./routes/user')
+const homeRoutes = require('./routes/items')
 
 // express app
 const app = express()
@@ -22,15 +22,17 @@ app.use((req, res, next) => {
 
 // routes
 app.use('/api/user', userRoutes)
+app.use('/api/items', homeRoutes )
 
-// connect to db
-mongoose.connect(process.env.MONGO_URI)
+// connect to db and start server
+const connectMongo = require('./db/mongo')
+
+connectMongo()
   .then(() => {
-    // listen for requests
     app.listen(process.env.PORT, () => {
-      console.log('connected to db & listening on port', process.env.PORT)
+      console.log('listening on port', process.env.PORT)
     })
   })
-  .catch((error) => {
-    console.log(error)
+  .catch((err) => {
+    console.error('Failed to start server:', err)
   })

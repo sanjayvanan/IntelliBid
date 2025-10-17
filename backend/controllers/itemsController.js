@@ -1,0 +1,45 @@
+const db = require('../db/postgres')
+
+
+const getItems = async (req, res) => {
+  try {
+    const { rows } = await db.query('SELECT * FROM items WHERE status = $1 ORDER BY end_time ASC', ['active']);
+    res.status(200).json(rows);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+
+const createItem = async (req, res) => {
+  const { name, description, start_price, current_price, start_time, end_time, category_id } = req.body;
+  
+  // Convert seller_id to string safely
+  const seller_id = req.user._id.toString();
+
+  try {
+    const queryText = `
+      INSERT INTO items(name, description, start_price, current_price, start_time, end_time, category_id, seller_id)
+      VALUES($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *
+    `;
+    const values = [
+      name,
+      description,
+      start_price,
+      current_price ?? start_price,
+      start_time ?? new Date(),
+      end_time,
+      category_id,
+      seller_id,
+    ];
+    const { rows } = await db.query(queryText, values);
+    res.status(201).json(rows[0]);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};	
+
+
+
+
+module.exports = { getItems, createItem };
