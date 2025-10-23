@@ -1,0 +1,111 @@
+/* ItemDetails.css */
+
+:root {
+  --page-max: 1200px;
+  --pad: 24px;
+  --gap: 48px;
+  --text: #111;
+  --muted: #555;
+  --line: #e6e6e6;
+  --green: #10b981;
+  --red: #ef4444;
+}
+
+.item-page {
+  padding: 40px 0 80px;
+  color: var(--text);
+  font-family: "Poppins", system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  background: #fafafa;
+}
+
+.container {
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: 0 var(--pad);
+}
+
+.item-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: var(--gap);
+  align-items: start;
+}
+
+/* Media (left) */
+.item-media {
+  margin: 0;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 24px;
+}
+
+.item-media img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+/* Info (right) */
+.item-info { padding-top: 8px; }
+
+.item-title {
+  font-size: 2rem;
+  line-height: 1.2;
+  margin: 0 0 12px;
+}
+
+.item-desc {
+  color: var(--muted);
+  margin: 0 0 24px;
+}
+
+/* Meta grid like a product spec table */
+.meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 24px;
+  padding-top: 10px;
+}
+
+.meta-grid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.label {
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--muted);
+}
+
+.value {
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.status-badge {
+  display: inline-block;
+  font-weight: 700;
+  font-size: 0.95rem;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #ddd;
+  width: fit-content;
+}
+.status-badge.active { background: rgba(16,185,129,.12); color: var(--green); }
+.status-badge.ended  { background: rgba(239,68,68,.12);  color: var(--red); }
+
+/* Responsive */
+@media (max-width: 980px) {
+  .item-grid { grid-template-columns: 1fr; gap: 28px; }
+  .item-title { font-size: 1.6rem; }
+  .meta-grid { grid-template-columns: 1fr; }
+}
