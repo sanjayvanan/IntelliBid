@@ -1,15 +1,23 @@
 const express = require('express')
 const router = express.Router()
 
-const {getItems, createItem} = require('../controllers/itemsController')
+const {getItem, getItems, createItem} = require('../controllers/itemsController')
 
 requireAuth = require('../middleware/requireAuth')
 
-// router.use(requireAuth)
+
 
 
 router.get('/', getItems)
+
+
+router.use(requireAuth)
+
+
+
+
 router.post('/', createItem)
+router.get('/:id', getItem)
 
 
 

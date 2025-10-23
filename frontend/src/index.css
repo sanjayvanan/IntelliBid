@@ -6,14 +6,18 @@
   --primary: #1aac83;
   --error: #e7195a;
 }
+
 body {
   background: #f1f1f1;
   margin: 0;
   font-family: "Poppins";
 }
+
+/* header */
 header {
   background: #fff;
 }
+
 header .container {
   max-width: 1400px;
   margin: 0 auto;
@@ -22,55 +26,76 @@ header .container {
   align-items: center;
   justify-content: space-between;
 }
+
 header a {
   color: #333;
   text-decoration: none;
 }
-.pages{
+
+.pages {
   max-width: 1400px;
   padding: 20px;
   margin: 0 auto;
 }
 
-/* homepage */
+/* homepage container */
 .home {
-  display: grid;
-  grid-template-columns: 3fr 1fr;
-  gap: 100px;
-}
-.workout-details {
-  background: #fff;
-  border-radius: 4px;
-  margin: 20px auto;
-  padding: 20px;
-  position: relative;
-  box-shadow: 2px 2px 5px rgba(0,0,0,0.05);
-}
-.workout-details h4 {
-  margin: 0 0 10px 0;
-  font-size: 1.2em;
-  color: var(--primary);
-}
-.workout-details p {
-  margin: 0;
-  font-size: 0.9em;
-  color: #555;
-}
-.workout-details span {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  cursor: pointer;
-  background: #f1f1f1;
-  padding: 6px;
-  border-radius: 50%;
-  color: #333;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 20px;
+  display: block;
 }
 
-/* new workout form */
+.home h2 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 24px;
+}
+
+/* cards grid */
+.items-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+}
+
+/* card */
+.auction-card {
+  background: #fff;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.auction-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 18px rgba(0,0,0,0.12);
+}
+
+.auction-title {
+  margin: 0 0 8px 0;
+  color: var(--primary);
+  font-size: 1.2rem;
+}
+
+.auction-desc {
+  margin: 0 0 10px 0;
+  color: #555;
+  font-size: 0.95rem;
+}
+
+.auction-card p {
+  margin: 6px 0;
+  color: #444;
+  font-size: 0.95rem;
+}
+
+/* new workout form (repurposed for add item forms if needed) */
 label, input {
   display: block;
 }
+
 input {
   padding: 10px;
   margin-top: 10px;
@@ -80,6 +105,7 @@ input {
   border-radius: 4px;
   box-sizing: border-box;
 }
+
 form button {
   background: var(--primary);
   border: 0;
@@ -89,6 +115,7 @@ form button {
   border-radius: 4px;
   cursor: pointer;
 }
+
 div.error {
   padding: 10px;
   background: #ffefef;
@@ -97,6 +124,7 @@ div.error {
   border-radius: 4px;
   margin: 20px 0;
 }
+
 input.error {
   border: 1px solid var(--error);
 }
@@ -106,9 +134,11 @@ nav {
   display: flex;
   align-items: center;
 }
+
 nav a, nav button {
   margin-left: 10px;
 }
+
 nav button {
   background: #fff;
   color: var(--primary);
@@ -128,3 +158,14 @@ form.signup, form.login {
   background: #fff;
   border-radius: 4px;
 }
+
+/* responsive */
+@media (max-width: 768px) {
+  .items-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+
+

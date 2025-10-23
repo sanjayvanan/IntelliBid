@@ -1,6 +1,26 @@
 const db = require('../db/postgres')
 
 
+const getItem = async( req, res) => {
+    const { id } = req.params;
+    try{
+        const query  ='SELECT * from items where id = $1';
+        const { rows } = await db.query (query, [id]);
+        if(rows.length === 0){
+            return res.status(404).json({error : 'Item not found'});
+        }
+        return res.status(200).json(rows[0])
+    }
+    catch(error){
+        res.status(400).json({error: error.message});
+    }
+}
+
+
+
+
+
+
 const getItems = async (req, res) => {
   try {
     const { rows } = await db.query('SELECT * FROM items WHERE status = $1 ORDER BY end_time ASC', ['active']);
@@ -42,4 +62,4 @@ const createItem = async (req, res) => {
 
 
 
-module.exports = { getItems, createItem };
+module.exports = {getItem, getItems, createItem };

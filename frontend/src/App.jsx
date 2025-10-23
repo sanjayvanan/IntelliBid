@@ -6,6 +6,8 @@ import Home from './pages/Home'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
 import Navbar from './components/Navbar'
+import AddItems from './pages/AddItems'
+import ItemDetails from './pages/ItemDetails'
 
 function App() {
   const user = useSelector((state) => state.auth.user)
@@ -29,6 +31,14 @@ function App() {
             <Route 
               path="/signup" 
               element={!user ? <Signup /> : <Navigate to="/" />} 
+            />
+             <Route 
+              path="/add-item" 
+              element={<AddItems /> } 
+            />
+            <Route 
+              path="/item-details/:id" 
+              element={<ItemDetails /> } 
             />
           </Routes>
           
