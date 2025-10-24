@@ -1,65 +1,77 @@
-import {useState} from 'react'
-import axios from 'axios'
-// name, description, start_price, current_price, start_time, end_time, category_id, seller_id
+import { useState } from "react";
+import axios from "axios";
 
-const AddItems = () => {
-    const [name, setName] =useState('');
-    const[description, setDescription] = useState('');
-    const[startPrice, setStartPrice] = useState('');
-    const[currentPrice, setCurrentPrice] = useState('');
-    const[startTime, setStartTime] = useState('');
-    const[endTime, setEndTime] = useState('');
-    const[categoryId, setCategoryId] = useState('');
+export default function AddItems() {
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [startPrice, setStartPrice] = useState("");
+  const [currentPrice, setCurrentPrice] = useState("");
+  const [startTime, setStartTime] = useState("");     // datetime-local
+  const [endTime, setEndTime] = useState("");         // datetime-local
+  const [categoryId, setCategoryId] = useState("");
+  const [file, setFile] = useState(null);
+  const [msg, setMsg] = useState("");
 
-const handleSubmit = async(e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    try{
-        axios.post('http://localhost:4000/api/items',
-            {name ,
-            description,
-            start_price: 500,
-            current_price: 750,
-            start_time: "2025-10-23T10:00:00Z",
-            end_time: "2025-10-30T10:00:00Z",
-            category_id: 1
-            },
-            {
-    headers: {                      // ✅ must be inside `headers`
-      Authorization: `Bearer ${JSON.parse(localStorage.getItem('user'))?.token}`,
-      "Content-Type": "application/json",
-    },}
-        ).then((response) => {
-        console.log(response.data);
-    })
+    if (!file) return setMsg("Pick an image.");
 
-    }catch(error){
-        console.error('Error adding item:', error);
+    const form = new FormData();
+    form.append("image", file); // ← MUST match multer.single('image')
+    form.append("name", name);
+    form.append("description", description);
+    form.append("start_price", startPrice || 0);
+    form.append("current_price", currentPrice || startPrice || 0);
+    // Convert datetime-local to ISO string if present
+    if (startTime) form.append("start_time", new Date(startTime).toISOString());
+    if (endTime) form.append("end_time", new Date(endTime).toISOString());
+    form.append("category_id", categoryId || 1);
+
+    const token = JSON.parse(localStorage.getItem("user"))?.token;
+
+    try {
+      const { data } = await axios.post("http://localhost:4000/api/items", form, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      setMsg("Created ✓");
+      console.log(data);
+    } catch (err) {
+      console.error(err);
+      setMsg(err.response?.data?.error || "Failed to create item");
     }
-    
+  };
+
+  return (
+    <form onSubmit={handleSubmit} style={{ maxWidth: 480 }}>
+      <label>Name</label>
+      <input value={name} onChange={(e) => setName(e.target.value)} required />
+
+      <label>Description</label>
+      <input value={description} onChange={(e) => setDescription(e.target.value)} required />
+
+      <label>Start price</label>
+      <input type="number" step="0.01" value={startPrice} onChange={(e) => setStartPrice(e.target.value)} required />
+
+      <label>Current price</label>
+      <input type="number" step="0.01" value={currentPrice} onChange={(e) => setCurrentPrice(e.target.value)} />
+
+      <label>Start time</label>
+      <input type="datetime-local" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+
+      <label>End time</label>
+      <input type="datetime-local" value={endTime} onChange={(e) => setEndTime(e.target.value)} required />
+
+      <label>Category ID</label>
+      <input type="number" value={categoryId} onChange={(e) => setCategoryId(e.target.value)} />
+
+      <label>Image</label>
+      <input type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] || null)} required />
+
+      <button type="submit" style={{ marginTop: 8 }}>Submit</button>
+      {msg && <p>{msg}</p>}
+    </form>
+  );
 }
-
-
-    return(
-        <div>
-            <form onSubmit={handleSubmit}>
-                <label htmlFor="name">Name</label>
-                <input type="text"
-                 onChange={(e)=> setName(e.target.value)} 
-                 value={name}
-                 />
-
-                 <label htmlFor="description">Description</label>
-                 <input type="text" 
-                  onChange={(e)=>setDescription(e.target.value)} 
-                  value={description}
-                  />
-
-
-
-                <button type='submit'>Submit</button>
-            </form>
-        </div>
-    )
-}
-
-export default AddItems;

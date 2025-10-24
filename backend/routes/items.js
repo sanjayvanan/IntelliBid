@@ -1,24 +1,14 @@
-const express = require('express')
-const router = express.Router()
+const express = require("express");
+const router = express.Router();
 
-const {getItem, getItems, createItem} = require('../controllers/itemsController')
+const { getItem, getItems, createItem } = require("../controllers/itemsController");
+const { upload, processImage } = require("../middleware/upload"); // <- multer + sharp
+const requireAuth = require("../middleware/requireAuth");
 
-requireAuth = require('../middleware/requireAuth')
+router.get("/", getItems);
+router.get("/:id", getItem);
 
+//for S3 we need this middleware
+router.post("/", requireAuth, upload.single("image"), processImage, createItem);
 
-
-
-router.get('/', getItems)
-
-
-router.use(requireAuth)
-
-
-
-
-router.post('/', createItem)
-router.get('/:id', getItem)
-
-
-
-module.exports = router
+module.exports = router;
