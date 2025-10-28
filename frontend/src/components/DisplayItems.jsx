@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchItems } from '../features/itemsSlice';
 import { Link } from 'react-router-dom';
-
+import './DisplayItems.css';
 
 const DisplayItems = () => {
   const dispatch = useDispatch();
@@ -21,9 +21,16 @@ const DisplayItems = () => {
         {items && items.map((item) => (
           <div key={item.id} className="auction-card">
             <Link to={`/item-details/${item.id}`}>
-            <h3 className="auction-title">{item.name}</h3>
-            <p><strong>Current Price:</strong> {item.current_price}</p>
-            <p><strong>Ends on:</strong> {new Date(item.end_time).toLocaleString()}</p>
+              {item.image_url && (
+                <div className="auction-image">
+                  <img src={item.image_url} alt={item.name} />
+                </div>
+              )}
+              <div className="auction-info">
+                <h3 className="auction-title">{item.name}</h3>
+                <p><strong>Current Price:</strong> ${item.current_price}</p>
+                <p><strong>Ends on:</strong> {new Date(item.end_time).toLocaleString()}</p>
+              </div>
             </Link>
           </div>
         ))}
