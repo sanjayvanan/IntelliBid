@@ -4,12 +4,20 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import API_URL from "../config/api";
 import "../styles/ItemDetails.css";
+import {  useSelector } from "react-redux";
+import BiddingForm from "../components/BiddingForm";
+import CountDownTimer from "../components/CountDownTimer";
 
 const ItemDetails = () => {
+  const user = useSelector((state) => state.auth.user)
+
+
   const { id } = useParams();
   const [item, setItem] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+ 
 
   useEffect(() => {
     (async () => {
@@ -30,6 +38,8 @@ const ItemDetails = () => {
     })();
   }, [id]);
 
+
+
   if (loading) return <div className="center-text">Loading...</div>;
   if (error) return <div className="center-text error">{error}</div>;
   if (!item) return <div className="center-text">No item found</div>;
@@ -45,6 +55,8 @@ const ItemDetails = () => {
     status,
     category_id,
   } = item;
+
+
 
   const formatDate = (d) =>
     new Date(d).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
@@ -64,8 +76,9 @@ const ItemDetails = () => {
           </figure>
 
           <section className="item-info">
-            <h1 className="item-title">{name}</h1>
+            <h1 className="item-title">{name} </h1> 
             <p className="item-desc">{description}</p>
+            <p>the Auction ends in  <CountDownTimer endTime = {end_time}/></p>
 
             <div className="meta-grid">
               <div>
@@ -82,7 +95,7 @@ const ItemDetails = () => {
               </div>
               <div>
                 <span className="label">End Time</span>
-                <span className="value">{formatDate(end_time)}</span>
+                <span className="value">{formatDate(end_time)}</span>  
               </div>
               <div>
                 <span className="label">Status</span>
@@ -98,6 +111,7 @@ const ItemDetails = () => {
           </section>
         </div>
       </div>
+      <BiddingForm current_price= {current_price} itemId = {id} />
     </main>
   );
 };

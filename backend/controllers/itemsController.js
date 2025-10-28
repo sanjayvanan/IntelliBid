@@ -4,6 +4,7 @@ const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 const s3 = require("../aws/s3");
 const db = require("../db/postgres");
 
+
 const BUCKET = process.env.BUCKET_NAME;
 const REGION = process.env.BUCKET_REGION;
 
@@ -36,11 +37,28 @@ const generatePresignedUrl = async (key, expiresIn = 3600) => {
   }
 };
 
+//------------------------------
+
+const getMyItems = async(req, res) =>{
+  try{
+     const id = req.user._id.toString();
+    
+    const query = `select * from items where seller_id = $1`;
+    const {rows} = await db.query(query, [id])
+    res.json(rows);
+  }catch(err){
+    console.log(err);
+    res.send(err);
+  }
+}
+
+
 async function getItem(req, res) {
   try {
     const { id } = req.params;
     const { rows } = await db.query("SELECT * FROM items WHERE id = $1", [id]);
     if (!rows.length) return res.status(404).json({ error: "Item not found" });
+    
     
     const item = rows[0];
     
@@ -60,7 +78,7 @@ async function getItem(req, res) {
 async function getItems(_req, res) {
   try {
     const { rows } = await db.query(
-      "SELECT * FROM items WHERE status = $1 ORDER BY end_time ASC",
+      "SELECT * FROM items WHERE status = $1 and End_time > NOw() ORDER BY end_time ASC",
       ["active"]
     );
     
@@ -142,4 +160,21 @@ async function createItem(req, res) {
   }
 }
 
-module.exports = { getItem, getItems, createItem };
+
+//pending 
+const updateItem = async(req, res) => {
+  // try{
+  //   const id = req.user._id.toString();
+  //   const current_price = req.current_price;
+  //   const query = "UPDATE items SET current_price = $1 WHERE id = $2 ";
+  //   const response = await db.query(query,[current_price, id ]);
+  //   res.json(response)
+  // }catch(err){
+
+  // }
+  console.log("UpdateItem");
+  
+  
+}
+
+module.exports = {getMyItems, getItem, getItems, createItem, updateItem };

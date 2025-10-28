@@ -5,11 +5,14 @@ const cors = require("cors");
 const userRoutes = require("./routes/user");
 const itemRoutes = require("./routes/items");
 const connectMongo = require("./db/mongo");
+// Start background jobs
+require('./jobs/auctionCloser'); // Adjust path if needed
 
 const app = express();
 
 app.use(cors({ origin: "http://localhost:5174", credentials: true }));
 app.use("/api/items", itemRoutes);
+
 app.use(express.json());
 app.use((req, _res, next) => { console.log(req.method, req.path); next(); });
 
