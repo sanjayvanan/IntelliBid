@@ -3,7 +3,7 @@ const sharp = require("sharp");
 
 const upload = multer({ storage: multer.memoryStorage() });
 
-async function processImage(req, res, next) {
+const processImage = async (req, res, next) =>{
   try {
     if (!req.file) return next(); // image optional
     req.processedImage = await sharp(req.file.buffer)
