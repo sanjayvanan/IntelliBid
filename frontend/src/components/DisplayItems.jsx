@@ -13,6 +13,7 @@ const DisplayItems = () => {
     dispatch(fetchItems());
   }, []);
 
+
   return (
     <div className="display-items">
       <h2>Current Auctions</h2>
@@ -30,7 +31,7 @@ const DisplayItems = () => {
               <div className="auction-info">
                 <h3 className="auction-title">{item.name}</h3>
                 <p><strong>Current Price:</strong> ${item.current_price}</p>
-                <div><strong>Ends in:</strong> <CountDownTimer endTime={item.end_time}/></div>
+                <div><CountDownTimer startTime={item.start_time} endTime={item.end_time} /></div>
               </div>
             </Link>
           </div>

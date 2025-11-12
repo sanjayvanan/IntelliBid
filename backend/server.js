@@ -10,7 +10,7 @@ require('./jobs/auctionCloser'); // Adjust path if needed
 
 const app = express();
 
-app.use(cors({ origin: "http://localhost:5174", credentials: true }));
+app.use(cors({ origin: process.env.FRONTEND_PORT, credentials: true }));
 app.use("/api/items", itemRoutes);
 
 app.use(express.json());

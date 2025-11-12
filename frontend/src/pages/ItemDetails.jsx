@@ -78,7 +78,7 @@ const ItemDetails = () => {
           <section className="item-info">
             <h1 className="item-title">{name} </h1> 
             <p className="item-desc">{description}</p>
-            <p>the Auction ends in  <CountDownTimer endTime = {end_time}/></p>
+            <p>the Auction <CountDownTimer startTime={item.start_time} endTime={item.end_time} /></p>
 
             <div className="meta-grid">
               <div>

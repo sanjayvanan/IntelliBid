@@ -10,38 +10,24 @@ console.log('Auction closing job scheduler initialized.');
 cron.schedule('* * * * *', async () => {
   console.log('Running auction closing job at:', new Date().toISOString());
   try {
-    // Find items that are active and whose end_time has passed
-    const { rows: expiredItems } = await db.query(
-      "SELECT id FROM items WHERE status = 'active' AND end_time <= NOW()"
+    // It finds all active items where end_time has passed
+    // It updates their status to 'ended'
+    // It returns the 'id' of all items it successfully updated
+    const { rows: updatedItems } = await db.query(
+      "UPDATE items SET status = 'ended' WHERE status = 'active' AND end_time <= NOW() RETURNING id"
     );
 
-    if (expiredItems.length === 0) {
+    if (updatedItems.length === 0) {
       console.log('No expired auctions found.');
-      return;
+    } else {
+      console.log(`Updated ${updatedItems.length} items to 'ended'.`);
     }
 
-    console.log(`Found ${expiredItems.length} expired auctions to process.`);
+    // --- TODO (Future Logic - Phase 3): ---
+    // You would now loop through the 'updatedItems' array
+    // to find winners, check reserves, etc.
 
-    // Loop through each expired item and update its status
-    for (const item of expiredItems) {
-      // --- Basic Update (Just set to 'ended') ---
-      // You'll expand this later to find the winner, check reserve, etc.
-      await db.query(
-        "UPDATE items SET status = 'ended' WHERE id = $1 AND status = 'active'", // Add check for status='active' again as a safeguard
-        [item.id]
-      );
-      console.log(`Updated status for item ID: ${item.id} to 'ended'`);
-
-      // --- TODO (Future Logic - Phase 3): ---
-      // 1. Find the highest bid for this item.id from the 'bids' table.
-      // 2. Get the item's reserve_price (if any).
-      // 3. If highest bid >= reserve_price (or no reserve):
-      //    - Update status to 'sold'.
-      //    - Update winning_bidder_id with the highest bidder's ID.
-      // 4. Else (no bids or reserve not met):
-      //    - Update status to 'ended' or 'reserve_not_met'.
-      // ------------------------------------------
-    }
+    
   } catch (err) {
     console.error('Error running auction closing job:', err);
   }

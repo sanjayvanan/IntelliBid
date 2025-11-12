@@ -72,6 +72,13 @@ const createItem = async (req, res) => {
 // Update (placeholder)
 // ----------------------
 const updateItem = async (req, res) => {
+  try{
+    
+  }catch{
+
+  }
+
+
   console.log("updateItem endpoint hit — not implemented yet");
   res.status(501).json({ message: "Update item not implemented yet" });
 };
