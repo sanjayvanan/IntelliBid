@@ -118,9 +118,52 @@ const createItem = async (item) => {
   return attachPresignedUrl(finalRows[0]);
 };
 
+
+
+
+
+//update the Items(Placing the BID)
+const updateItemBid = async (itemId, bidAmount, bidderId) => {
+  const client = await db.connect(); 
+  try {
+     const values = [
+      bidAmount,
+      itemId,
+      bidderId
+    ]
+    await client.query('BEGIN');
+
+    const insertQuery = `INSERT INTO bids(amount, item_id, bidder_id) VALUES($1,$2,$3)`;
+    const bidInsert = await client.query(insertQuery, values);
+
+    const updateQuery = `Update items SET current_price = $1 WHERE id = $2`;
+    const itemUpdate = await client.query(updateQuery, [bidAmount, itemId]);
+
+    await client.query("COMMIT");
+    console.log(bidInsert.rows[0]);
+    console.log(itemUpdate.rows[0]);
+    
+    
+    return {
+      bid: bidInsert.rows[0],
+      item: itemUpdate.rows[0]
+    };
+  } catch (error) {
+    await client.query("ROLLBACK");
+  }
+  finally {
+  client.release();
+}
+
+   
+  
+
+};
+
 module.exports = {
   getItemsBySeller,
   getItemById,
   getAllActiveItems,
   createItem,
+  updateItemBid
 };

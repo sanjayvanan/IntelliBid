@@ -1,12 +1,14 @@
 import { useState } from 'react';
+import { useSelector } from "react-redux";
 import axios from 'axios';
+import API_URL from "../config/api";
 
-const BiddingForm = ({ current_price, id }) => {
+const BiddingForm = ({ current_price, itemId : id , onBidSuccess}) => {
   const [bidAmount, setBidAmount] = useState('');
   const [warning, setWarning] = useState('');
 
-  const token = JSON.parse(localStorage.getItem("user"))?.token;
-
+  const user = useSelector((state)=> state.auth.user);
+  const token = user?.token;
   // bid logic
   const handleBidChange = (e) => {
     const value = parseInt(e.target.value);
@@ -25,18 +27,21 @@ const BiddingForm = ({ current_price, id }) => {
     if (bidAmount > current_price) {
       try {
         const response = await axios.patch(
-          `http://localhost:4000/api/items/bidup/${id}`,
-          { bid_Amount: bidAmount },
+          `${API_URL}/api/items/bidup/${id}`,
+          { bidAmount: bidAmount },
           {
             headers: {
               Authorization: `Bearer ${token}`,
             },
           }
         );
-
+        
         console.log("Bid updated:", response.data);
+        onBidSuccess();
+        setBidAmount('');
         alert("Bid placed successfully");
-      } catch (error) {
+      } 
+      catch (error) {
         console.error("Error placing bid:", error);
         alert("Failed to place bid");
       }

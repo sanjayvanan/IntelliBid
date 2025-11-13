@@ -9,11 +9,11 @@ const connectMongo = require("./db/mongo");
 require('./jobs/auctionCloser'); // Adjust path if needed
 
 const app = express();
+app.use(express.json());
 
 app.use(cors({ origin: process.env.FRONTEND_PORT, credentials: true }));
 app.use("/api/items", itemRoutes);
 
-app.use(express.json());
 app.use((req, _res, next) => { console.log(req.method, req.path); next(); });
 
 app.use("/api/user", userRoutes);

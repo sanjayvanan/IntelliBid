@@ -73,14 +73,35 @@ const createItem = async (req, res) => {
 // ----------------------
 const updateItem = async (req, res) => {
   try{
-    
-  }catch{
+    const {id:itemId } = req.params;
+    const {bidAmount} = req.body;
+    const bidderId = req.user._id.toString();
 
+    if(!bidAmount || !itemId){
+      return res.status(400).json({error : "Missing Fields"});
+      }
+
+    const item  = await itemService.getItemById(itemId);
+    if(!item){
+      return res.status(400).json({error : "Item not found"});
+    }
+
+    if(bidAmount < item.current_price){
+      return res.status(400).json({error : "Bid Must be Higher than the current price"});
+    }
+    
+    const result = await itemService.updateItemBid(itemId, bidAmount, bidderId);
+    res.json(result);
+    
+  }catch(err){
+    console.log(err);
+    
+    res.status(500).json({err});
   }
 
 
-  console.log("updateItem endpoint hit — not implemented yet");
-  res.status(501).json({ message: "Update item not implemented yet" });
+  // console.log("updateItem endpoint hit — not implemented yet");
+  // res.status(501).json({ message: "Update item not implemented yet" });
 };
 
 module.exports = {
