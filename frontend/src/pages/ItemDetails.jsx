@@ -7,6 +7,7 @@ import "../styles/ItemDetails.css";
 import { useSelector } from "react-redux";
 import BiddingForm from "../components/BiddingForm";
 import CountDownTimer from "../components/CountDownTimer";
+import { io } from "socket.io-client";
 
 const ItemDetails = () => {
   const user = useSelector((state) => state.auth.user);
@@ -48,6 +49,34 @@ const ItemDetails = () => {
         setLoading(false);
       }
     })();
+  }, [id]);
+
+
+  //Websocket Listener
+  useEffect(() => {
+    // Connect to the backend URL
+    const socket = io(API_URL);
+
+    socket.on("connect", () => {
+      console.log("Connected to WebSocket");
+    });
+
+    // Listen for 'bid_placed' event emitted by the controller
+    socket.on("bid_placed", (data) => {
+      // Only update if the event is for the item we are currently viewing
+      if (data.itemId === id) {
+        console.log("Real-time update received:", data);
+        setItem((prevItem) => ({
+          ...prevItem,
+          current_price: data.current_price
+        }));
+      }
+    });
+
+    // Cleanup connection when component unmounts
+    return () => {
+      socket.disconnect();
+    };
   }, [id]);
 
   if (loading) return <div className="center-text">Loading...</div>;

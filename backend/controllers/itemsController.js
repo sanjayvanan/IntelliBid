@@ -95,6 +95,17 @@ const updateItem = async (req, res) => {
     }
 
     const result = await itemService.updateItemBid(itemId, bidAmount, bidderId);
+    // --- BROADCAST START ---
+    // Retrieve the io instance we set in server.js
+    const io = req.app.get('io');
+    
+    // Emit event to everyone
+    io.emit('bid_placed', {
+      itemId: itemId,
+      current_price: result.item.current_price, // new price from DB
+      bidderId: bidderId
+    });
+    // --- BROADCAST END ---
     res.json(result);
     
   }catch(err){
@@ -103,9 +114,6 @@ const updateItem = async (req, res) => {
     res.status(500).json({err});
   }
 
-
-  // console.log("updateItem endpoint hit — not implemented yet");
-  // res.status(501).json({ message: "Update item not implemented yet" });
 };
 
 module.exports = {

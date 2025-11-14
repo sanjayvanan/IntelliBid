@@ -133,10 +133,10 @@ const updateItemBid = async (itemId, bidAmount, bidderId) => {
     ]
     await client.query('BEGIN');
 
-    const insertQuery = `INSERT INTO bids(amount, item_id, bidder_id) VALUES($1,$2,$3)`;
+    const insertQuery = `INSERT INTO bids(amount, item_id, bidder_id) VALUES($1,$2,$3) RETURNING *`;
     const bidInsert = await client.query(insertQuery, values);
 
-    const updateQuery = `Update items SET current_price = $1 WHERE id = $2`;
+    const updateQuery = `Update items SET current_price = $1 WHERE id = $2 RETURNING *`;
     const itemUpdate = await client.query(updateQuery, [bidAmount, itemId]);
 
     await client.query("COMMIT");
