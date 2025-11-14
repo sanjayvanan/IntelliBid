@@ -150,6 +150,7 @@ const updateItemBid = async (itemId, bidAmount, bidderId) => {
     };
   } catch (error) {
     await client.query("ROLLBACK");
+    throw error;
   }
   finally {
   client.release();

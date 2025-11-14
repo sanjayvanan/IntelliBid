@@ -89,7 +89,11 @@ const updateItem = async (req, res) => {
     if(bidAmount < item.current_price){
       return res.status(400).json({error : "Bid Must be Higher than the current price"});
     }
-    
+
+    if(item?.status !== "active"){
+      return res.status(400).json({error: "Auction is close"});
+    }
+
     const result = await itemService.updateItemBid(itemId, bidAmount, bidderId);
     res.json(result);
     
