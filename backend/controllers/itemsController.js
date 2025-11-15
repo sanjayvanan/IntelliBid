@@ -1,6 +1,32 @@
 // Services
 const itemService = require('../services/itemService');
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
+
+// Initialize Gemini
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+// [NEW] Generate Description Function
+const generateDescription = async (req, res) => {
+  try {
+    const { name, category } = req.body;
+    
+    if (!name) {
+      return res.status(400).json({ error: "Item name is required" });
+    }
+
+    const prompt = `Write a compelling, short, and professional auction listing description for a "${name}" ${category ? `in the category of ${category}` : ""}. Keep it under 50 words. Highlight value and urgency.`;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+
+    res.json({ description: text });
+  } catch (error) {
+    console.error("AI Generation Error:", error);
+    res.status(500).json({ error: "Failed to generate description" });
+  }
+};
 // ----------------------
 // Get all items for logged-in seller
 // ----------------------
@@ -122,4 +148,5 @@ module.exports = {
   getItems,
   createItem,
   updateItem,
+  generateDescription
 };

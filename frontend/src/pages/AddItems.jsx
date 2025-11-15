@@ -12,6 +12,8 @@ export default function AddItems() {
   const [file, setFile] = useState(null);
   const [msg, setMsg] = useState("");
 
+  const [isGenerating, setIsGenerating] = useState(false);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!file) return setMsg("Pick an image.");
@@ -44,13 +46,64 @@ export default function AddItems() {
     }
   };
 
+  const handleGenerateDescription = async () => {
+    if (!name) {
+      alert("Please enter an Item Name first!");
+      return;
+    }
+
+    setIsGenerating(true);
+    const token = JSON.parse(localStorage.getItem("user"))?.token;
+
+    try {
+      const res = await axios.post(
+        "http://localhost:4000/api/items/generate-description",
+        { name, category: "General" }, // need to change this after i mapp the number to catagory
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setDescription(res.data.description);
+    } catch (error) {
+      console.error(error);
+      alert("Failed to generate description. Try again.");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   return (
     <form onSubmit={handleSubmit} style={{ maxWidth: 480 }}>
       <label>Name</label>
       <input value={name} onChange={(e) => setName(e.target.value)} required />
 
       <label>Description</label>
-      <input value={description} onChange={(e) => setDescription(e.target.value)} required />
+      <div style={{ display: "flex", gap: "10px" }}>
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          required
+          style={{ 
+            width: "100%", 
+            padding: "10px", 
+            borderRadius: "4px", 
+            border: "1px solid #ddd",
+            minHeight: "80px"
+          }}
+        />
+      </div>
+      <button 
+        type="button" 
+        onClick={handleGenerateDescription} 
+        disabled={isGenerating}
+        style={{ 
+          marginTop: "5px", 
+          marginBottom: "20px", 
+          background: "#6366f1", 
+          fontSize: "0.9rem"
+        }}
+      >
+        {isGenerating ? "Generating..." : "✨ Auto-Generate with AI"}
+      </button>
 
       <label>Start price</label>
       <input type="number" step="0.01" value={startPrice} onChange={(e) => setStartPrice(e.target.value)} required />

@@ -1,12 +1,13 @@
 const express = require("express");
 const router = express.Router();
 
-const { getMyItems, getItem, getItems, createItem, updateItem } = require("../controllers/itemsController");
+const { getMyItems, getItem, getItems, createItem, updateItem,generateDescription } = require("../controllers/itemsController");
 const { upload, processImage } = require("../middleware/upload"); // <- multer + sharp
 const requireAuth = require("../middleware/requireAuth");
 
 router.get("/myItems", requireAuth, getMyItems);
 router.get("/", getItems);
+router.post("/generate-description", requireAuth, generateDescription);
 router.get("/:id", getItem);
 router.patch('/bidup/:id', requireAuth, updateItem);
 
