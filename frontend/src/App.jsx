@@ -8,6 +8,7 @@ import Signup from './pages/Signup'
 import Navbar from './components/Navbar'
 import AddItems from './pages/AddItems'
 import ItemDetails from './pages/ItemDetails'
+import Profile from './pages/Profile'
 
 function App() {
   const user = useSelector((state) => state.auth.user)
@@ -40,6 +41,11 @@ function App() {
               path="/item-details/:id" 
               element={<ItemDetails /> } 
             />
+            <Route 
+              path="/profile" 
+              element={<Profile /> } 
+            />
+            /profile
 
           </Routes>
           
