@@ -1,32 +1,62 @@
-// Services
-const itemService = require('../services/itemService');
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+// controllers/itemsController.js
 
+const itemService = require("../services/itemService");
+const { generateItemDescription } = require("../services/aiService");
+const {
+  getRecommendationsForItem,
+} = require("../services/recommendationService");
 
-// Initialize Gemini
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-// [NEW] Generate Description Function
+// ----------------------
+// Generate description
+// ----------------------
 const generateDescription = async (req, res) => {
   try {
     const { name, category } = req.body;
-    
+
     if (!name) {
       return res.status(400).json({ error: "Item name is required" });
     }
 
-    const prompt = `Write a compelling, short, and professional auction listing description for a "${name}" ${category ? `in the category of ${category}` : ""}. Keep it under 50 words. Highlight value and urgency.`;
-
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
-
-    res.json({ description: text });
+    const description = await generateItemDescription(name, category);
+    res.json({ description });
   } catch (error) {
     console.error("AI Generation Error:", error);
     res.status(500).json({ error: "Failed to generate description" });
   }
 };
+
+// ----------------------
+// Recommendations
+// ----------------------
+const getRecommendations = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    try {
+      const recommendations = await getRecommendationsForItem(id);
+      return res.json(recommendations);
+    } catch (innerError) {
+      console.error("Recommendation Error:", innerError);
+
+      // Fallback: no AI, just 3 candidates from same category
+      const currentItem = await itemService.getItemById(id);
+      if (!currentItem) {
+        return res.status(404).json({ error: "Item not found" });
+      }
+
+      const fallback = await itemService.getCandidateItems(
+        currentItem.category_id,
+        id,
+        3
+      );
+      return res.json(fallback);
+    }
+  } catch (error) {
+    console.error("Recommendation Fatal Error:", error);
+    res.status(500).json({ error: "Failed to fetch recommendations" });
+  }
+};
+
 // ----------------------
 // Get all items for logged-in seller
 // ----------------------
@@ -95,51 +125,52 @@ const createItem = async (req, res) => {
 };
 
 // ----------------------
-// Update (placeholder)
+// Update bid
 // ----------------------
 const updateItem = async (req, res) => {
-  try{
-    const {id:itemId } = req.params;
-    const {bidAmount} = req.body;
+  try {
+    const { id: itemId } = req.params;
+    const { bidAmount } = req.body;
     const bidderId = req.user._id.toString();
 
-    if(!bidAmount || !itemId){
-      return res.status(400).json({error : "Missing Fields"});
-      }
-
-    const item  = await itemService.getItemById(itemId);
-    if(!item){
-      return res.status(400).json({error : "Item not found"});
+    if (!bidAmount || !itemId) {
+      return res.status(400).json({ error: "Missing Fields" });
     }
 
-    if(bidAmount < item.current_price){
-      return res.status(400).json({error : "Bid Must be Higher than the current price"});
+    const item = await itemService.getItemById(itemId);
+    if (!item) {
+      return res.status(400).json({ error: "Item not found" });
     }
 
-    if(item?.status !== "active"){
-      return res.status(400).json({error: "Auction is close"});
+    if (bidAmount < item.current_price) {
+      return res
+        .status(400)
+        .json({ error: "Bid must be higher than the current price" });
     }
 
-    const result = await itemService.updateItemBid(itemId, bidAmount, bidderId);
-    // --- BROADCAST START ---
-    // Retrieve the io instance we set in server.js
-    const io = req.app.get('io');
-    
-    // Emit event to everyone
-    io.emit('bid_placed', {
+    if (item?.status !== "active") {
+      return res.status(400).json({ error: "Auction is closed" });
+    }
+
+    const result = await itemService.updateItemBid(
+      itemId,
+      bidAmount,
+      bidderId
+    );
+
+    const io = req.app.get("io");
+
+    io.emit("bid_placed", {
       itemId: itemId,
-      current_price: result.item.current_price, // new price from DB
-      bidderId: bidderId
+      current_price: result.item.current_price,
+      bidderId: bidderId,
     });
-    // --- BROADCAST END ---
-    res.json(result);
-    
-  }catch(err){
-    console.log(err);
-    
-    res.status(500).json({err});
-  }
 
+    res.json(result);
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ err });
+  }
 };
 
 module.exports = {
@@ -148,5 +179,6 @@ module.exports = {
   getItems,
   createItem,
   updateItem,
-  generateDescription
+  generateDescription,
+  getRecommendations,
 };

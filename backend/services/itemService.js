@@ -1,10 +1,24 @@
+// services/itemService.js
 const db = require("../db/postgres");
 const s3 = require("../aws/s3");
 const { PutObjectCommand } = require("@aws-sdk/client-s3");
-const { randomName, extractKeyFromUrl, generatePresignedUrl } = require("../utils/s3Utils");
+const {
+  randomName,
+  extractKeyFromUrl,
+  generatePresignedUrl,
+} = require("../utils/s3Utils");
+const { embedText } = require("./aiService");
 
 const BUCKET = process.env.BUCKET_NAME;
 const REGION = process.env.BUCKET_REGION;
+
+/**
+ * Convert a JS array of numbers into a pgvector literal string.
+ * Example: [0.1, 0.2] -> "[0.1,0.2]"
+ */
+const toPgVectorLiteral = (embeddingArray) => {
+  return `[${embeddingArray.join(",")}]`;
+};
 
 /**
  * Attaches a presigned URL to an item if it has an image.
@@ -59,6 +73,7 @@ const getAllActiveItems = async () => {
 
 /**
  * Create a new item and upload its image if provided.
+ * Also generates and stores a description embedding.
  */
 const createItem = async (item) => {
   const {
@@ -86,13 +101,45 @@ const createItem = async (item) => {
   ];
 
   const insertQuery = `
-    INSERT INTO items (name, description, start_price, current_price, start_time, end_time, category_id, seller_id, status)
+    INSERT INTO items (
+      name,
+      description,
+      start_price,
+      current_price,
+      start_time,
+      end_time,
+      category_id,
+      seller_id,
+      status
+    )
     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'active')
     RETURNING id
   `;
 
   const { rows } = await db.query(insertQuery, values);
   const itemId = rows[0].id;
+
+  // Generate and store embedding for this item (best-effort)
+  try {
+    // Use both name + description so embedding has real product meaning,
+    // not just marketing fluff.
+    const textToEmbed = [name, description].filter(Boolean).join(". ");
+
+    if (textToEmbed) {
+      const embedding = await embedText(textToEmbed);
+      const vecLiteral = toPgVectorLiteral(embedding);
+
+      await db.query(
+        `UPDATE items
+         SET description_embedding = $2
+         WHERE id = $1`,
+        [itemId, vecLiteral]
+      );
+    }
+  } catch (err) {
+    console.error("Failed to generate/store embedding for item", itemId, err);
+    // Do not throw; item creation should still succeed without embedding
+  }
 
   // Upload image if present
   if (processedImage) {
@@ -110,55 +157,124 @@ const createItem = async (item) => {
     );
 
     const imageUrl = `https://${BUCKET}.s3.${REGION}.amazonaws.com/${key}`;
-    await db.query(`UPDATE items SET image_url = $1 WHERE id = $2`, [imageUrl, itemId]);
+    await db.query(`UPDATE items SET image_url = $1 WHERE id = $2`, [
+      imageUrl,
+      itemId,
+    ]);
   }
 
   // Return final item with signed URL
-  const { rows: finalRows } = await db.query(`SELECT * FROM items WHERE id = $1`, [itemId]);
+  const { rows: finalRows } = await db.query(
+    `SELECT * FROM items WHERE id = $1`,
+    [itemId]
+  );
   return attachPresignedUrl(finalRows[0]);
 };
 
-
-
-
-
-//update the Items(Placing the BID)
+/**
+ * Update the item when a bid is placed.
+ */
 const updateItemBid = async (itemId, bidAmount, bidderId) => {
-  const client = await db.connect(); 
+  const client = await db.connect();
   try {
-     const values = [
-      bidAmount,
-      itemId,
-      bidderId
-    ]
-    await client.query('BEGIN');
+    const values = [bidAmount, itemId, bidderId];
+    await client.query("BEGIN");
 
     const insertQuery = `INSERT INTO bids(amount, item_id, bidder_id) VALUES($1,$2,$3) RETURNING *`;
     const bidInsert = await client.query(insertQuery, values);
 
-    const updateQuery = `Update items SET current_price = $1 WHERE id = $2 RETURNING *`;
+    const updateQuery = `UPDATE items SET current_price = $1 WHERE id = $2 RETURNING *`;
     const itemUpdate = await client.query(updateQuery, [bidAmount, itemId]);
 
     await client.query("COMMIT");
     console.log(bidInsert.rows[0]);
     console.log(itemUpdate.rows[0]);
-    
-    
+
     return {
       bid: bidInsert.rows[0],
-      item: itemUpdate.rows[0]
+      item: itemUpdate.rows[0],
     };
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;
+  } finally {
+    client.release();
   }
-  finally {
-  client.release();
-}
+};
 
-   
-  
+const getCandidateItems = async (category_id, excluded_id, limit = 20) => {
+  const query = `
+    SELECT * FROM items 
+    WHERE status = 'active'
+      AND end_time > NOW()
+      AND category_id = $1
+      AND id != $2
+    ORDER BY start_time DESC
+    LIMIT $3
+  `;
 
+  const { rows } = await db.query(query, [category_id, excluded_id, limit]);
+
+  return Promise.all(rows.map(attachPresignedUrl));
+};
+
+/**
+ * Get similar items using pgvector similarity (NO category filter).
+ */
+const getSimilarItemsByEmbedding = async (itemId, limit = 20) => {
+  const { rows: currentRows } = await db.query(
+    `SELECT id, category_id, description_embedding
+     FROM items
+     WHERE id = $1`,
+    [itemId]
+  );
+
+  if (!currentRows.length) {
+    throw new Error("Item not found");
+  }
+
+  const current = currentRows[0];
+
+  if (!current.description_embedding) {
+    throw new Error("Current item has no embedding");
+  }
+
+  const { rows } = await db.query(
+    `
+    SELECT *
+    FROM items
+    WHERE id <> $1
+      AND status = 'active'
+      AND end_time > NOW()
+    ORDER BY description_embedding <-> $2::vector
+    LIMIT $3
+    `,
+    [itemId, current.description_embedding, limit]
+  );
+
+  return Promise.all(rows.map(attachPresignedUrl));
+};
+
+/**
+ * Helper: fetch the current item and candidate items for recommendations.
+ */
+const getRecommendationBaseData = async (itemId, limit = 20) => {
+  const currentItem = await getItemById(itemId);
+  if (!currentItem) {
+    throw new Error("Item not found");
+  }
+
+  let candidates;
+  try {
+    // primary path: vector similarity (no category constraint)
+    candidates = await getSimilarItemsByEmbedding(itemId, limit);
+  } catch (err) {
+    console.error("Vector-based candidate fetch failed, falling back:", err);
+    // fallback: old category-based logic so nothing breaks
+    candidates = await getCandidateItems(currentItem.category_id, itemId, limit);
+  }
+
+  return { currentItem, candidates };
 };
 
 module.exports = {
@@ -166,5 +282,8 @@ module.exports = {
   getItemById,
   getAllActiveItems,
   createItem,
-  updateItemBid
+  updateItemBid,
+  getCandidateItems,
+  getRecommendationBaseData,
+  getSimilarItemsByEmbedding,
 };

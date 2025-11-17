@@ -8,6 +8,8 @@ import { useSelector } from "react-redux";
 import BiddingForm from "../components/BiddingForm";
 import CountDownTimer from "../components/CountDownTimer";
 import { io } from "socket.io-client";
+import RecommendationList from "../components/RecommendationList";
+import useFetch from "../hooks/useFetch";
 
 const ItemDetails = () => {
   const user = useSelector((state) => state.auth.user);
@@ -32,6 +34,12 @@ const ItemDetails = () => {
       console.error("Failed to refresh item:", e);
     }
   };
+
+  // 3. Fetch Recommendations using the hook (Updates when ID changes)
+  const { 
+    data: recommendations, 
+    isPending: recLoading 
+  } = useFetch(`${API_URL}/api/items/recommend/${id}`);
 
   useEffect(() => {
     (async () => {
@@ -158,6 +166,11 @@ const ItemDetails = () => {
         current_price={current_price}
         itemId={id}
         onBidSuccess={refreshItem}
+      />
+
+      <RecommendationList 
+         recommendations={recommendations} 
+         loading={recLoading} 
       />
     </main>
   );
