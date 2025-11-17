@@ -23,6 +23,7 @@ router.get("/:id", getItem);
 router.patch("/bidup/:id", requireAuth, updateItem);
 
 // for S3 we need this middleware
-router.post("/", requireAuth, upload.single("image"), processImage, createItem);
+// Allow up to 5 images
+router.post("/", requireAuth, upload.array("images", 5), processImage, createItem);
 
 module.exports = router;

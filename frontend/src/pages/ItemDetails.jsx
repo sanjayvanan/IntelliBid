@@ -1,4 +1,4 @@
-// ItemDetails.jsx
+// frontend/src/pages/ItemDetails.jsx
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import axios from "axios";
@@ -19,8 +19,11 @@ const ItemDetails = () => {
   const [item, setItem] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // State to toggle main image if user clicks a thumbnail
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
-  // ⬇️ Function to reload item data after placing a bid  // 
+  // Function to reload item data after placing a bid
   const refreshItem = async () => {
     try {
       const res = await axios.get(`${API_URL}/api/items/${id}`, {
@@ -35,7 +38,7 @@ const ItemDetails = () => {
     }
   };
 
-  // 3. Fetch Recommendations using the hook (Updates when ID changes)
+  // Fetch Recommendations using the hook
   const { 
     data: recommendations, 
     isPending: recLoading 
@@ -57,21 +60,17 @@ const ItemDetails = () => {
         setLoading(false);
       }
     })();
-  }, [id]);
+  }, [id, token]);
 
-
-  //Websocket Listener
+  // Websocket Listener
   useEffect(() => {
-    // Connect to the backend URL
     const socket = io(API_URL);
 
     socket.on("connect", () => {
       console.log("Connected to WebSocket");
     });
 
-    // Listen for 'bid_placed' event emitted by the controller
     socket.on("bid_placed", (data) => {
-      // Only update if the event is for the item we are currently viewing
       if (data.itemId === id) {
         console.log("Real-time update received:", data);
         setItem((prevItem) => ({
@@ -81,7 +80,6 @@ const ItemDetails = () => {
       }
     });
 
-    // Cleanup connection when component unmounts
     return () => {
       socket.disconnect();
     };
@@ -103,6 +101,10 @@ const ItemDetails = () => {
     category_id,
   } = item;
 
+  // Handle image_url whether it's a single string (legacy) or array
+  const images = Array.isArray(image_url) ? image_url : [image_url].filter(Boolean);
+  const mainImage = images[selectedImageIndex] || images[0];
+
   const formatDate = (d) =>
     new Date(d).toLocaleString("en-IN", {
       dateStyle: "medium",
@@ -114,7 +116,52 @@ const ItemDetails = () => {
       <div className="container">
         <div className="item-grid">
           <figure className="item-media">
-            <img src={image_url} alt={name} />
+            {/* Main Display Image */}
+            <div style={{ 
+              width: "100%", 
+              height: "400px", 
+              overflow: "hidden", 
+              borderRadius: "12px",
+              marginBottom: "16px",
+              backgroundColor: "#f9f9f9",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center"
+            }}>
+               {mainImage ? (
+                 <img 
+                   src={mainImage} 
+                   alt={name} 
+                   style={{ width: "100%", height: "100%", objectFit: "contain" }} 
+                 />
+               ) : (
+                 <span style={{color: "#999"}}>No Image</span>
+               )}
+            </div>
+
+            {/* Thumbnail Gallery */}
+            {images.length > 1 && (
+              <div style={{ display: "flex", gap: "12px", overflowX: "auto", paddingBottom: "8px" }}>
+                {images.map((img, idx) => (
+                  <img 
+                    key={idx} 
+                    src={img} 
+                    alt={`Thumbnail ${idx + 1}`} 
+                    onClick={() => setSelectedImageIndex(idx)}
+                    style={{ 
+                      width: "70px", 
+                      height: "70px", 
+                      objectFit: "cover", 
+                      borderRadius: "8px", 
+                      cursor: "pointer",
+                      border: selectedImageIndex === idx ? "2px solid #1aac83" : "2px solid transparent",
+                      opacity: selectedImageIndex === idx ? 1 : 0.7,
+                      transition: "all 0.2s"
+                    }}
+                  />
+                ))}
+              </div>
+            )}
           </figure>
 
           <section className="item-info">
@@ -161,7 +208,6 @@ const ItemDetails = () => {
         </div>
       </div>
 
-      {/* ⬇️ Pass refreshItem into BiddingForm */}
       <BiddingForm
         current_price={current_price}
         itemId={id}

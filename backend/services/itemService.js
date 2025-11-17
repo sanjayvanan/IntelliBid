@@ -21,17 +21,28 @@ const toPgVectorLiteral = (embeddingArray) => {
 };
 
 /**
- * Attaches a presigned URL to an item if it has an image.
+ * Attaches presigned URLs to an item if it has images.
+ * Handles both single string (legacy) and array of strings.
  */
 const attachPresignedUrl = async (item) => {
   if (!item?.image_url) return item;
 
-  const key = extractKeyFromUrl(item.image_url);
-  const url = await generatePresignedUrl(key);
+  // Ensure image_url is treated as an array (handles legacy string data vs new array data)
+  const urls = Array.isArray(item.image_url) ? item.image_url : [item.image_url];
+
+  // Generate signed URLs for all images
+  const signedUrls = await Promise.all(
+    urls.map(async (url) => {
+      if (!url) return null;
+      const key = extractKeyFromUrl(url);
+      const signed = await generatePresignedUrl(key);
+      return signed || url;
+    })
+  );
 
   return {
     ...item,
-    image_url: url || item.image_url,
+    image_url: signedUrls.filter((u) => u !== null), // Return array of signed URLs
   };
 };
 
@@ -41,11 +52,11 @@ const attachPresignedUrl = async (item) => {
 const getItemsBySeller = async (sellerId) => {
   const query = `SELECT * FROM items WHERE seller_id = $1`;
   const { rows } = await db.query(query, [sellerId]);
-  return rows;
+  return Promise.all(rows.map(attachPresignedUrl));
 };
 
 /**
- * Fetch a single item and include a presigned URL for its image.
+ * Fetch a single item and include presigned URLs for its images.
  */
 const getItemById = async (id) => {
   const { rows } = await db.query(`SELECT * FROM items WHERE id = $1`, [id]);
@@ -72,7 +83,7 @@ const getAllActiveItems = async () => {
 };
 
 /**
- * Create a new item and upload its image if provided.
+ * Create a new item and upload its images if provided.
  * Also generates and stores a description embedding.
  */
 const createItem = async (item) => {
@@ -85,8 +96,7 @@ const createItem = async (item) => {
     end_time,
     category_id,
     seller_id,
-    processedImage,
-    processedMime,
+    processedImages, // Expecting an array of processed image objects
   } = item;
 
   const values = [
@@ -100,6 +110,7 @@ const createItem = async (item) => {
     seller_id,
   ];
 
+  // Insert the item first to get the ID
   const insertQuery = `
     INSERT INTO items (
       name,
@@ -121,8 +132,7 @@ const createItem = async (item) => {
 
   // Generate and store embedding for this item (best-effort)
   try {
-    // Use both name + description so embedding has real product meaning,
-    // not just marketing fluff.
+    // Use both name + description so embedding has real product meaning
     const textToEmbed = [name, description].filter(Boolean).join(". ");
 
     if (textToEmbed) {
@@ -141,29 +151,35 @@ const createItem = async (item) => {
     // Do not throw; item creation should still succeed without embedding
   }
 
-  // Upload image if present
-  if (processedImage) {
-    const key = `${randomName()}.jpg`;
+  // Upload images if present
+  if (processedImages && processedImages.length > 0) {
+    const uploadPromises = processedImages.map(async (img) => {
+      const key = `${randomName()}.jpg`;
 
-    await s3.send(
-      new PutObjectCommand({
-        Bucket: BUCKET,
-        Key: key,
-        Body: processedImage,
-        ContentType: processedMime,
-        CacheControl: "public, max-age=31536000, immutable",
-        Metadata: { itemId: String(itemId) },
-      })
-    );
+      await s3.send(
+        new PutObjectCommand({
+          Bucket: BUCKET,
+          Key: key,
+          Body: img.buffer,
+          ContentType: img.mimetype,
+          CacheControl: "public, max-age=31536000, immutable",
+          Metadata: { itemId: String(itemId) },
+        })
+      );
 
-    const imageUrl = `https://${BUCKET}.s3.${REGION}.amazonaws.com/${key}`;
+      return `https://${BUCKET}.s3.${REGION}.amazonaws.com/${key}`;
+    });
+
+    const uploadedUrls = await Promise.all(uploadPromises);
+
+    // Update DB with the array of URLs
     await db.query(`UPDATE items SET image_url = $1 WHERE id = $2`, [
-      imageUrl,
+      uploadedUrls,
       itemId,
     ]);
   }
 
-  // Return final item with signed URL
+  // Return final item with signed URLs
   const { rows: finalRows } = await db.query(
     `SELECT * FROM items WHERE id = $1`,
     [itemId]

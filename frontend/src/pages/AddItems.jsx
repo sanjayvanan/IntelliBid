@@ -1,5 +1,7 @@
 import { useState } from "react";
 import axios from "axios";
+import { useSelector } from "react-redux";
+import API_URL from "../config/api";
 
 export default function AddItems() {
   const [name, setName] = useState("");
@@ -9,30 +11,40 @@ export default function AddItems() {
   const [startTime, setStartTime] = useState("");     // datetime-local
   const [endTime, setEndTime] = useState("");         // datetime-local
   const [categoryId, setCategoryId] = useState("");
-  const [file, setFile] = useState(null);
+  const [files, setFiles] = useState([]); // Store multiple files
   const [msg, setMsg] = useState("");
 
   const [isGenerating, setIsGenerating] = useState(false);
 
+  // Access token from Redux store
+  const user = useSelector((state) => state.auth.user);
+  const token = user?.token;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!file) return setMsg("Pick an image.");
+    // Check if the files array is empty
+    if (!files || files.length === 0) return setMsg("Pick at least one image.");
 
     const form = new FormData();
-    form.append("image", file); // ← MUST match multer.single('image')
+    
+    // Loop through the FileList and append each file with the key 'images'
+    // This matches upload.array('images') in the backend
+    for (let i = 0; i < files.length; i++) {
+      form.append("images", files[i]);
+    }
+
     form.append("name", name);
     form.append("description", description);
     form.append("start_price", startPrice || 0);
     form.append("current_price", currentPrice || startPrice || 0);
+    
     // Convert datetime-local to ISO string if present
     if (startTime) form.append("start_time", new Date(startTime).toISOString());
     if (endTime) form.append("end_time", new Date(endTime).toISOString());
     form.append("category_id", categoryId || 1);
 
-    const token = JSON.parse(localStorage.getItem("user"))?.token;
-
     try {
-      const { data } = await axios.post("http://localhost:4000/api/items", form, {
+      const { data } = await axios.post(`${API_URL}/api/items`, form, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",
@@ -40,6 +52,8 @@ export default function AddItems() {
       });
       setMsg("Created ✓");
       console.log(data);
+      
+      // Optional: Reset form here if desired
     } catch (err) {
       console.error(err);
       setMsg(err.response?.data?.error || "Failed to create item");
@@ -53,12 +67,11 @@ export default function AddItems() {
     }
 
     setIsGenerating(true);
-    const token = JSON.parse(localStorage.getItem("user"))?.token;
 
     try {
       const res = await axios.post(
-        "http://localhost:4000/api/items/generate-description",
-        { name, category: "General" }, // need to change this after i mapp the number to catagory
+        `${API_URL}/api/items/generate-description`,
+        { name, category: "General" }, // Placeholder category logic
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -120,8 +133,21 @@ export default function AddItems() {
       <label>Category ID</label>
       <input type="number" value={categoryId} onChange={(e) => setCategoryId(e.target.value)} />
 
-      <label>Image</label>
-      <input type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] || null)} required />
+      <label>Images (Select multiple)</label>
+      <input 
+        type="file" 
+        accept="image/*" 
+        multiple // Allow multiple file selection
+        onChange={(e) => setFiles(e.target.files)} 
+        required 
+      />
+      
+      {/* Simple preview of how many files are selected */}
+      {files.length > 0 && (
+        <p style={{ fontSize: "0.9rem", color: "#666", margin: "5px 0" }}>
+          {files.length} file(s) selected
+        </p>
+      )}
 
       <button type="submit" style={{ marginTop: 8 }}>Submit</button>
       {msg && <p>{msg}</p>}

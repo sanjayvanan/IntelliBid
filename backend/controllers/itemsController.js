@@ -112,8 +112,7 @@ const createItem = async (req, res) => {
     const itemData = {
       ...req.body,
       seller_id: req.user._id.toString(),
-      processedImage: req.processedImage,
-      processedMime: req.processedMime,
+      processedImages: req.processedImages, 
     };
 
     const newItem = await itemService.createItem(itemData);
