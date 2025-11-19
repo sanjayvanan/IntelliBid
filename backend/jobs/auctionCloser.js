@@ -5,15 +5,12 @@ const { sendWinnerEmail } = require('../utils/email');
 
 console.log('Auction closing job scheduler initialized.');
 
-// Run every minute
 cron.schedule('* * * * *', async () => {
-  console.log('Running auction closing job at:', new Date().toISOString());
-  
+  console.log('Running auction closing job...');
   const client = await db.connect();
 
   try {
-    // 1. DATABASE UPDATE: Find active items that expired and set them to 'ended'.
-    // We use 'RETURNING *' to get the full item details back so we know the Name and ID.
+    // 1. Find expired active items
     const { rows: expiredItems } = await client.query(
       `UPDATE items 
        SET status = 'ended' 
@@ -21,54 +18,48 @@ cron.schedule('* * * * *', async () => {
        RETURNING *`
     );
 
-    if (expiredItems.length === 0) {
-      // Common case: nothing happened this minute.
-      return;
-    }
+    if (expiredItems.length === 0) return;
 
-    console.log(`Updated ${expiredItems.length} items to 'ended'. Processing winners...`);
+    console.log(`Processing ${expiredItems.length} ended items...`);
 
-    // 2. PROCESSING: Loop through every item that just ended
     for (const item of expiredItems) {
       try {
-        // A. Find the highest bid for this specific item
-        const bidQuery = `
-          SELECT * FROM bids 
-          WHERE item_id = $1 
-          ORDER BY amount DESC 
-          LIMIT 1
-        `;
+        // 2. Find highest bid
+        const bidQuery = `SELECT * FROM bids WHERE item_id = $1 ORDER BY amount DESC LIMIT 1`;
         const { rows: bids } = await client.query(bidQuery, [item.id]);
 
-        // If no one bid, we can't email a winner.
         if (bids.length === 0) {
-          console.log(`Item "${item.name}" (ID: ${item.id}) ended with 0 bids.`);
+          console.log(`Item ${item.id} ended with no bids.`);
+          // Optionally mark as unsold or handled elsewhere
           continue; 
         }
 
         const winningBid = bids[0];
-        
-        // B. Find the User who made that bid
         const winner = await User.findById(winningBid.bidder_id);
 
         if (winner) {
+          // 3. UPDATE ITEM WITH WINNER & PAYMENT STATUS
+          await client.query(
+            `UPDATE items SET winner_id = $1, payment_status = 'pending' WHERE id = $2`,
+            [winner._id.toString(), item.id]
+          );
+
           console.log(`Winner found for "${item.name}": ${winner.email}`);
           
-          // C. ACTION: Send the email
-          await sendWinnerEmail(winner.email, item.name, winningBid.amount);
-        } else {
-          console.error(`Critical: Highest bidder ID ${winningBid.bidder_id} not found in MongoDB.`);
+          // 4. Send Email with Profile Link
+          const paymentLink = `${process.env.FRONTEND_PORT || 'http://localhost:5173'}/profile`;
+          await sendWinnerEmail(winner.email, item.name, winningBid.amount, paymentLink);
         }
 
       } catch (innerErr) {
-        console.error(`Error processing winner for item ${item.id}:`, innerErr);
+        console.error(`Error processing item ${item.id}:`, innerErr);
       }
     }
 
   } catch (err) {
-    console.error('Error running auction closing job:', err);
+    console.error('Error running auction job:', err);
   } finally {
-    client.release(); // Always release the DB connection back to the pool // it will take too much process cause of the other project
+    client.release();
   }
 });
 

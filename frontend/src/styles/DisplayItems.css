@@ -67,3 +67,193 @@
   color: #333;
 }
 
+
+
+
+/* /profile page/ */
+
+/* ===========================
+   PROFILE PAGE
+   =========================== */
+
+
+.profile-page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 16px 40px;
+}
+
+.profile-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 24px;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 12px;
+}
+
+.profile-header h1 {
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+
+.profile-email {
+  margin-top: 4px;
+  font-size: 0.95rem;
+  color: #6b7280;
+}
+
+/* Sections */
+
+.profile-section {
+  margin-top: 32px;
+  padding: 20px 18px 22px;
+  border-radius: 12px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+}
+
+.profile-section-title {
+  font-size: 1.25rem;
+  margin: 0 0 10px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.profile-section-title--won {
+  color: #0f766e;
+}
+
+/* Grid layout */
+
+.items-grid {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+/* Cards */
+
+.auction-card {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  padding: 14px 16px 16px;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.15s ease, box-shadow 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.auction-card--won {
+  border-left: 4px solid #0f766e;
+  padding-left: 12px;
+}
+
+.auction-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+  border-color: #d1d5db;
+}
+
+/* Make the listing cards fully clickable */
+
+.auction-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.auction-link:focus-visible {
+  outline: 2px solid #1aac83;
+  outline-offset: 3px;
+}
+
+/* Card content */
+
+.auction-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.auction-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 2px;
+}
+
+.auction-meta {
+  font-size: 0.95rem;
+  color: #4b5563;
+  margin: 0;
+}
+
+/* Error & empty states */
+
+.error-text {
+  color: #b91c1c;
+  margin-top: 4px;
+  font-size: 0.9rem;
+}
+
+.empty-state {
+  font-size: 0.95rem;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+/* Payment status + button */
+
+.payment-actions {
+  margin-top: 10px;
+}
+
+.payment-status {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.payment-status--paid {
+  background: #10b981;
+  color: #ffffff;
+}
+
+.payment-button {
+  background: #1aac83;
+  color: #ffffff;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 600;
+  width: 100%;
+  font-size: 0.9rem;
+  transition: transform 0.1s ease, box-shadow 0.1s ease, opacity 0.1s ease,
+    background-color 0.1s ease;
+}
+
+.payment-button:hover {
+  background: #158968;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.16);
+}
+
+.payment-button:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.payment-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

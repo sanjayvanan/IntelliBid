@@ -214,29 +214,46 @@ const ItemDetails = () => {
         </div>
       </div>
 
-      {/* [CHANGED] Conditionally render BiddingForm */}
-      {!isOwner ? (
-        <BiddingForm
-          current_price={current_price}
-          itemId={id}
-          onBidSuccess={refreshItem}
-        />
-      ) : (
-        <div style={{ 
-          textAlign: 'center', 
-          padding: '15px', 
-          marginTop: '30px', 
-          backgroundColor: '#fff3cd', 
-          color: '#856404',
-          borderRadius: '8px',
-          maxWidth: '600px',
-          marginLeft: 'auto',
-          marginRight: 'auto',
-          border: '1px solid #ffeeba'
-        }}>
-          <strong>You are the seller of this item.</strong>
-        </div>
-      )}
+      {/* Conditionally render BiddingForm */}
+{status !== "ended" ? (
+  !isOwner ? (
+    <BiddingForm
+      current_price={current_price}
+      itemId={id}
+      onBidSuccess={refreshItem}
+    />
+  ) : (
+    <div style={{ 
+      textAlign: 'center', 
+      padding: '15px', 
+      marginTop: '30px', 
+      backgroundColor: '#fff3cd', 
+      color: '#856404',
+      borderRadius: '8px',
+      maxWidth: '600px',
+      marginLeft: 'auto',
+      marginRight: 'auto',
+      border: '1px solid #ffeeba'
+    }}>
+      <strong>You are the seller of this item.</strong>
+    </div>
+  )
+) : (
+  <div style={{
+    textAlign: 'center',
+    padding: '15px',
+    marginTop: '30px',
+    backgroundColor: '#f8d7da',
+    color: '#721c24',
+    borderRadius: '8px',
+    maxWidth: '600px',
+    marginLeft: 'auto',
+    marginRight: 'auto',
+    border: '1px solid #f5c6cb'
+  }}>
+    <strong>This auction has ended.</strong>
+  </div>
+)}
 
       <RecommendationList 
          recommendations={recommendations} 

@@ -10,6 +10,7 @@ const {
   updateItem,
   generateDescription,
   getRecommendations,
+  getWonItems
 } = require("../controllers/itemsController");
 
 const { upload, processImage } = require("../middleware/upload");
@@ -17,6 +18,7 @@ const requireAuth = require("../middleware/requireAuth");
 
 router.get("/myItems", requireAuth, getMyItems);
 router.get("/", getItems);
+router.get("/won", requireAuth, getWonItems);
 router.post("/generate-description", requireAuth, generateDescription);
 router.get("/recommend/:id", requireAuth, getRecommendations);
 router.get("/:id", getItem);

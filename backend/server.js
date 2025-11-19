@@ -6,6 +6,7 @@ const {Server} = require("socket.io")
 
 const userRoutes = require("./routes/user");
 const itemRoutes = require("./routes/items");
+const paymentRoutes = require("./routes/payment");
 const connectMongo = require("./db/mongo");
 // Start background jobs
 require('./jobs/auctionCloser'); 
@@ -27,6 +28,7 @@ app.set('io', io);
 app.use(express.json());
 app.use(cors({ origin: process.env.FRONTEND_PORT, credentials: true }));
 app.use("/api/items", itemRoutes);
+app.use("/api/payment", paymentRoutes);
 
 app.use((req, _res, next) => { console.log(req.method, req.path); next(); });
 

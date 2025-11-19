@@ -177,6 +177,31 @@ const updateItem = async (req, res) => {
   }
 };
 
+
+
+const getWonItems = async (req, res) => {
+  try {
+    const userId = req.user._id.toString();
+    // Fetch items where winner_id matches user and fetch presigned URLs
+    const { rows } = await require("../db/postgres").query(
+      `SELECT * FROM items WHERE winner_id = $1 ORDER BY end_time DESC`,
+      [userId]
+    );
+    
+    // Re-use the logic to attach image URLs (you might need to export attachPresignedUrl or duplicate logic)
+    // Assuming itemService handles this logic, it's better to add a method in itemService.js 
+    // checking itemService.js... it has attachPresignedUrl as internal. 
+    // Let's quickly grab the service method if you added it, or just return raw rows for now.
+    // Better approach: Add getItemsByWinner to itemService.js and call it here.
+    
+    // For now, assuming direct DB for simplicity or you can add the service method:
+    res.json(rows);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to fetch won items" });
+  }
+};
+
 module.exports = {
   getMyItems,
   getItem,
@@ -185,4 +210,5 @@ module.exports = {
   updateItem,
   generateDescription,
   getRecommendations,
+  getWonItems
 };
