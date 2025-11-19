@@ -99,6 +99,7 @@ const ItemDetails = () => {
     end_time,
     status,
     category_id,
+    category_name,
   } = item;
 
   // Handle image_url whether it's a single string (legacy) or array
@@ -201,7 +202,7 @@ const ItemDetails = () => {
               </div>
               <div>
                 <span className="label">Category</span>
-                <span className="value">{category_id}</span>
+                <span className="value">{category_name ||category_id}</span>
               </div>
             </div>
           </section>

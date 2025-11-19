@@ -7,11 +7,16 @@ const Profile = () => {
     return(
         <div>
             <h1>It me da profile</h1>
+            <h1>My Products</h1>
+
             <p>{error?.message}</p>
             
-            {data && (
-        <pre>{JSON.stringify(data, null, 2)}</pre>
-      )}
+            {data && data.map((item) => (
+                <div key={item.id}>
+                     <p >{item.name}</p>
+                </div>
+               
+            ))}
         </div>
     )
 }
