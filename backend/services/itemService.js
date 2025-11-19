@@ -50,14 +50,14 @@ const getItemsBySeller = async (sellerId) => {
     SELECT items.*, categories.name AS category_name
     FROM items
     LEFT JOIN categories ON items.category_id = categories.id
-    WHERE items.seller_id = $1
+    WHERE items.seller_id = $1 AND items.status = 'active'
   `;
   const { rows } = await db.query(query, [sellerId]);
   return Promise.all(rows.map(attachPresignedUrl));
 };
 
 /**
- * Fetch a single item with category name.
+ * Fetch a single item with category name and include presigned URLs for its images..
  */
 const getItemById = async (id) => {
   const query = `

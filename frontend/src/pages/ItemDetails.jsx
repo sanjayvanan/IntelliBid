@@ -100,7 +100,12 @@ const ItemDetails = () => {
     status,
     category_id,
     category_name,
+    seller_id // Extract seller_id
   } = item;
+
+  // Check ownership
+  // Note: user.id comes from the updated backend login response that i added
+  const isOwner = user?.id === seller_id;
 
   // Handle image_url whether it's a single string (legacy) or array
   const images = Array.isArray(image_url) ? image_url : [image_url].filter(Boolean);
@@ -202,18 +207,36 @@ const ItemDetails = () => {
               </div>
               <div>
                 <span className="label">Category</span>
-                <span className="value">{category_name ||category_id}</span>
+                <span className="value">{category_name||category_id}</span>
               </div>
             </div>
           </section>
         </div>
       </div>
 
-      <BiddingForm
-        current_price={current_price}
-        itemId={id}
-        onBidSuccess={refreshItem}
-      />
+      {/* [CHANGED] Conditionally render BiddingForm */}
+      {!isOwner ? (
+        <BiddingForm
+          current_price={current_price}
+          itemId={id}
+          onBidSuccess={refreshItem}
+        />
+      ) : (
+        <div style={{ 
+          textAlign: 'center', 
+          padding: '15px', 
+          marginTop: '30px', 
+          backgroundColor: '#fff3cd', 
+          color: '#856404',
+          borderRadius: '8px',
+          maxWidth: '600px',
+          marginLeft: 'auto',
+          marginRight: 'auto',
+          border: '1px solid #ffeeba'
+        }}>
+          <strong>You are the seller of this item.</strong>
+        </div>
+      )}
 
       <RecommendationList 
          recommendations={recommendations} 

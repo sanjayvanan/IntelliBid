@@ -8,6 +8,11 @@ const pool = new Pool({
   port: process.env.PG_PORT,
 })
 
+// handle unexpected errors so Node doesn't crash //  supaBase disconnection wont affect now
+pool.on('error', (err) => {
+  console.error('Unexpected PostgreSQL error:', err);
+});
+
 module.exports = {
   query: (text, params) => pool.query(text, params),
   connect: () => pool.connect()

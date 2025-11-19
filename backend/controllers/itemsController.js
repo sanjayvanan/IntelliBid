@@ -138,7 +138,12 @@ const updateItem = async (req, res) => {
 
     const item = await itemService.getItemById(itemId);
     if (!item) {
-      return res.status(400).json({ error: "Item not found" });
+      return res.status(404).json({ error: "Item not found" });
+    }
+
+    // Security Check: Prevent seller from bidding
+    if (item.seller_id === bidderId) {
+      return res.status(403).json({ error: "You cannot bid on your own item" });
     }
 
     if (bidAmount < item.current_price) {
