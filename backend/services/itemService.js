@@ -283,6 +283,30 @@ const getRecommendationBaseData = async (itemId, limit = 20) => {
   return { currentItem, candidates };
 };
 
+
+const searchItems = async (queryText, page = 1, limit = 12) => {
+  const offset = (page - 1) * limit;
+
+  // 1. Convert the user's search query into a vector
+  const embedding = await embedText(queryText);
+  const vectorLiteral = `[${embedding.join(",")}]`;
+
+  // 2. Perform Vector Search in Postgres with LIMIT and OFFSET
+  const sql = `
+    SELECT items.*, categories.name AS category_name
+    FROM items
+    LEFT JOIN categories ON items.category_id = categories.id
+    WHERE items.status = 'active' 
+      AND items.end_time > NOW()
+    ORDER BY items.description_embedding <-> $1
+    LIMIT $2 OFFSET $3;
+  `;
+
+  const { rows } = await db.query(sql, [vectorLiteral, limit, offset]);
+  
+  return Promise.all(rows.map(attachPresignedUrl));
+};
+
 module.exports = {
   getItemsBySeller,
   getItemById,
@@ -292,4 +316,5 @@ module.exports = {
   getCandidateItems,
   getRecommendationBaseData,
   getSimilarItemsByEmbedding,
+  searchItems,
 };

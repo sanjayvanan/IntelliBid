@@ -1,4 +1,3 @@
-// frontend/src/pages/ItemDetails.jsx
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import axios from "axios";
@@ -12,6 +11,7 @@ import RecommendationList from "../components/RecommendationList";
 import useFetch from "../hooks/useFetch";
 
 const ItemDetails = () => {
+
   const user = useSelector((state) => state.auth.user);
   const token = user?.token;
 
@@ -19,8 +19,7 @@ const ItemDetails = () => {
   const [item, setItem] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
-  // State to toggle main image if user clicks a thumbnail
+   // State to toggle main image if user clicks a thumbnail
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   // Function to reload item data after placing a bid
@@ -38,7 +37,7 @@ const ItemDetails = () => {
     }
   };
 
-  // Fetch Recommendations using the hook
+   // Fetch Recommendations using the hook
   const { 
     data: recommendations, 
     isPending: recLoading 
@@ -62,7 +61,7 @@ const ItemDetails = () => {
     })();
   }, [id, token]);
 
-  // Websocket Listener
+   // Websocket Listener
   useEffect(() => {
     const socket = io(API_URL);
 
@@ -100,14 +99,15 @@ const ItemDetails = () => {
     status,
     category_id,
     category_name,
-    seller_id // Extract seller_id
+    seller_id
   } = item;
-
   // Check ownership
   // Note: user.id comes from the updated backend login response that i added
   const isOwner = user?.id === seller_id;
 
-  // Handle image_url whether it's a single string (legacy) or array
+  // --- Check if auction has started ---
+  const hasStarted = new Date() >= new Date(start_time);
+
   const images = Array.isArray(image_url) ? image_url : [image_url].filter(Boolean);
   const mainImage = images[selectedImageIndex] || images[0];
 
@@ -122,7 +122,6 @@ const ItemDetails = () => {
       <div className="container">
         <div className="item-grid">
           <figure className="item-media">
-            {/* Main Display Image */}
             <div style={{ 
               width: "100%", 
               height: "400px", 
@@ -145,7 +144,6 @@ const ItemDetails = () => {
                )}
             </div>
 
-            {/* Thumbnail Gallery */}
             {images.length > 1 && (
               <div style={{ display: "flex", gap: "12px", overflowX: "auto", paddingBottom: "8px" }}>
                 {images.map((img, idx) => (
@@ -214,46 +212,64 @@ const ItemDetails = () => {
         </div>
       </div>
 
-      {/* Conditionally render BiddingForm */}
-{status !== "ended" ? (
-  !isOwner ? (
-    <BiddingForm
-      current_price={current_price}
-      itemId={id}
-      onBidSuccess={refreshItem}
-    />
-  ) : (
-    <div style={{ 
-      textAlign: 'center', 
-      padding: '15px', 
-      marginTop: '30px', 
-      backgroundColor: '#fff3cd', 
-      color: '#856404',
-      borderRadius: '8px',
-      maxWidth: '600px',
-      marginLeft: 'auto',
-      marginRight: 'auto',
-      border: '1px solid #ffeeba'
-    }}>
-      <strong>You are the seller of this item.</strong>
-    </div>
-  )
-) : (
-  <div style={{
-    textAlign: 'center',
-    padding: '15px',
-    marginTop: '30px',
-    backgroundColor: '#f8d7da',
-    color: '#721c24',
-    borderRadius: '8px',
-    maxWidth: '600px',
-    marginLeft: 'auto',
-    marginRight: 'auto',
-    border: '1px solid #f5c6cb'
-  }}>
-    <strong>This auction has ended.</strong>
-  </div>
-)}
+      {/* --- UPDATED CONDITIONAL RENDERING FOR BIDDING FORM --- */}
+      {status !== "ended" ? (
+        !hasStarted ? (
+          <div style={{ 
+            textAlign: 'center', 
+            padding: '15px', 
+            marginTop: '30px', 
+            backgroundColor: '#e0f2f1', 
+            color: '#00695c',
+            borderRadius: '8px',
+            maxWidth: '600px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            border: '1px solid #b2dfdb'
+          }}>
+            <strong>Auction has not started yet.</strong>
+            <p style={{ margin: '5px 0 0 0', fontSize: '0.9em' }}>
+              Bidding opens at {formatDate(start_time)}
+            </p>
+          </div>
+        ) : !isOwner ? (
+          <BiddingForm
+            current_price={current_price}
+            itemId={id}
+            onBidSuccess={refreshItem}
+          />
+        ) : (
+          <div style={{ 
+            textAlign: 'center', 
+            padding: '15px', 
+            marginTop: '30px', 
+            backgroundColor: '#fff3cd', 
+            color: '#856404',
+            borderRadius: '8px',
+            maxWidth: '600px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            border: '1px solid #ffeeba'
+          }}>
+            <strong>You are the seller of this item.</strong>
+          </div>
+        )
+      ) : (
+        <div style={{
+          textAlign: 'center',
+          padding: '15px',
+          marginTop: '30px',
+          backgroundColor: '#f8d7da',
+          color: '#721c24',
+          borderRadius: '8px',
+          maxWidth: '600px',
+          marginLeft: 'auto',
+          marginRight: 'auto',
+          border: '1px solid #f5c6cb'
+        }}>
+          <strong>This auction has ended.</strong>
+        </div>
+      )}
 
       <RecommendationList 
          recommendations={recommendations} 

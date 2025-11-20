@@ -94,20 +94,28 @@ const getItem = async (req, res) => {
 // ----------------------
 // Get all active items
 // ----------------------
-const getItems = async (req, res) => { 
+const getItems = async (req, res) => {
   try {
-    
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 12; 
+    const limit = parseInt(req.query.limit) || 4; // Default limit 4 (or 12, whatever you set)
+    const searchQuery = req.query.search;
 
-    const items = await itemService.getAllActiveItems(page, limit);
+    let items;
+
+    if (searchQuery && searchQuery.trim().length > 0) {
+      console.log(`Performing AI Search for: "${searchQuery}", Page: ${page}`);
+      // PASS PAGE AND LIMIT HERE
+      items = await itemService.searchItems(searchQuery, page, limit);
+    } else {
+      items = await itemService.getAllActiveItems(page, limit);
+    }
+
     res.json(items);
   } catch (error) {
-    console.error("getItems:", error);
+    console.error("getItems Error:", error);
     res.status(400).json({ error: error.message });
   }
 };
-
 // ----------------------
 // Create a new item
 // ----------------------
@@ -148,6 +156,11 @@ const updateItem = async (req, res) => {
     // Security Check: Prevent seller from bidding
     if (item.seller_id === bidderId) {
       return res.status(403).json({ error: "You cannot bid on your own item" });
+    }
+
+    // Check if the auction has started
+    if (new Date(item.start_time) > new Date()) {
+      return res.status(400).json({ error: "Auction has not started yet" });
     }
 
     if (bidAmount < item.current_price) {
