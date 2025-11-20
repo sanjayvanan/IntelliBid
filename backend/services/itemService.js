@@ -75,7 +75,9 @@ const getItemById = async (id) => {
 /**
  * Fetch all currently active items with category name.
  */
-const getAllActiveItems = async () => {
+const getAllActiveItems = async (page = 1, limit = 12) => {
+  const offset = (page - 1) * limit;
+
   const query = `
     SELECT items.*, categories.name AS category_name
     FROM items
@@ -83,9 +85,10 @@ const getAllActiveItems = async () => {
     WHERE items.status = $1
       AND items.end_time > NOW()
     ORDER BY items.end_time ASC
+    LIMIT $2 OFFSET $3
   `;
 
-  const { rows } = await db.query(query, ["active"]);
+  const { rows } = await db.query(query, ["active", limit, offset]);
 
   return Promise.all(rows.map(attachPresignedUrl));
 };

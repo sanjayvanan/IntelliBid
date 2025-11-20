@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useSelector } from "react-redux";
 import axios from 'axios';
 import API_URL from "../config/api";
+import toast, { Toaster } from 'react-hot-toast';
 
 const BiddingForm = ({ current_price, itemId : id , onBidSuccess}) => {
   const [bidAmount, setBidAmount] = useState('');
@@ -39,17 +40,18 @@ const BiddingForm = ({ current_price, itemId : id , onBidSuccess}) => {
         console.log("Bid updated:", response.data);
         onBidSuccess();
         setBidAmount('');
-        alert("Bid placed successfully");
+        toast.success('Bid placed successfully!');
       } 
       catch (error) {
         console.error("Error placing bid:", error);
-        alert("Failed to place bid");
+        toast.error('Failed to place bid!');
       }
     }
   };
 
   return (
     <div>
+      <Toaster position="top-right" />
       <form onSubmit={handleBidSubmit}>
         <input type="number" onChange={handleBidChange} value={bidAmount} />
         <h1>{warning}</h1>

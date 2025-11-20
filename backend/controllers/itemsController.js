@@ -94,9 +94,13 @@ const getItem = async (req, res) => {
 // ----------------------
 // Get all active items
 // ----------------------
-const getItems = async (_req, res) => {
+const getItems = async (req, res) => { 
   try {
-    const items = await itemService.getAllActiveItems();
+    
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 12; 
+
+    const items = await itemService.getAllActiveItems(page, limit);
     res.json(items);
   } catch (error) {
     console.error("getItems:", error);
@@ -188,13 +192,6 @@ const getWonItems = async (req, res) => {
       [userId]
     );
     
-    // Re-use the logic to attach image URLs (you might need to export attachPresignedUrl or duplicate logic)
-    // Assuming itemService handles this logic, it's better to add a method in itemService.js 
-    // checking itemService.js... it has attachPresignedUrl as internal. 
-    // Let's quickly grab the service method if you added it, or just return raw rows for now.
-    // Better approach: Add getItemsByWinner to itemService.js and call it here.
-    
-    // For now, assuming direct DB for simplicity or you can add the service method:
     res.json(rows);
   } catch (error) {
     console.error(error);
