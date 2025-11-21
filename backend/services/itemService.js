@@ -307,6 +307,26 @@ const searchItems = async (queryText, page = 1, limit = 12) => {
   return Promise.all(rows.map(attachPresignedUrl));
 };
 
+/**
+ * RAG RETRIEVAL: Find similar items that have successfully sold.
+ * Used to ground the AI analysis in real market data.
+ */
+const getSimilarSoldItems = async (descriptionVector, limit = 5) => {
+  const vectorLiteral = `[${descriptionVector.join(",")}]`;
+
+  const query = `
+    SELECT name, description, current_price, end_time, image_url
+    FROM items
+    WHERE status = 'ended' 
+      AND winner_id IS NOT NULL
+    ORDER BY description_embedding <-> $1
+    LIMIT $2
+  `;
+
+  const { rows } = await db.query(query, [vectorLiteral, limit]);
+  return rows;
+};
+
 module.exports = {
   getItemsBySeller,
   getItemById,
@@ -317,4 +337,5 @@ module.exports = {
   getRecommendationBaseData,
   getSimilarItemsByEmbedding,
   searchItems,
+  getSimilarSoldItems
 };

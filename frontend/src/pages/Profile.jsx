@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { useSelector } from "react-redux";
 import API_URL from "../config/api";
-import "../styles/DisplayItems.css"; // Reusing styles for cards
+// import "../styles/DisplayItems.css"; // Reusing styles for cards
 import { Link } from "react-router-dom";
+import "../styles/profile.css"
 import AddressModal from "../components/AddressModal";
 
 const Profile = () => {
@@ -33,6 +34,7 @@ const Profile = () => {
       console.error(err);
     }
   };
+  
 
   const fetchWonItems = async () => {
     try {

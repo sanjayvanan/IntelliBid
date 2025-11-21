@@ -1,0 +1,174 @@
+/* src/styles/Profile.css */
+
+.profile-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 20px;
+  font-family: 'Poppins', sans-serif;
+  color: #333;
+}
+
+/* --- Header Section --- */
+.profile-header {
+  background: white;
+  padding: 2rem;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+  margin-bottom: 3rem;
+  border-left: 6px solid #1aac83; /* Brand accent */
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.profile-header h1 {
+  margin: 0;
+  font-size: 2rem;
+  color: #111;
+}
+
+.profile-email {
+  margin: 0;
+  color: #6b7280;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+/* --- Sections (Won / Sold) --- */
+.profile-section {
+  margin-bottom: 4rem;
+}
+
+.profile-section-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+}
+
+.profile-section-title--won {
+  color: #1aac83; /* Green highlighting for wins */
+  border-bottom-color: #1aac83;
+}
+
+/* --- Empty & Error States --- */
+.empty-state {
+  background: #f9fafb;
+  padding: 3rem;
+  text-align: center;
+  border-radius: 12px;
+  color: #9ca3af;
+  font-style: italic;
+  border: 2px dashed #e5e7eb;
+}
+
+.error-text {
+  color: #e7195a;
+  background: #fff1f2;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  border: 1px solid #fecdd3;
+}
+
+/* --- Grid Layout --- */
+.items-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+}
+
+/* --- Auction Card --- */
+.auction-card {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #eee;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.auction-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0,0,0,0.08);
+  border-color: #1aac83;
+}
+
+.auction-link {
+  text-decoration: none;
+  color: inherit;
+  flex-grow: 1; /* Ensures the clickable area pushes actions to bottom */
+  display: flex;
+  flex-direction: column;
+}
+
+.auction-info {
+  padding: 1.25rem;
+}
+
+.auction-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem 0;
+  color: #111;
+}
+
+.auction-meta {
+  font-size: 0.9rem;
+  color: #666;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.auction-meta strong {
+  color: #1aac83;
+  font-weight: 700;
+}
+
+/* --- Payment Actions (Bottom of Card) --- */
+.payment-actions {
+  padding: 1rem;
+  background: #f8f9fa;
+  border-top: 1px solid #eee;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Pay Button */
+.payment-button {
+  background: #1aac83;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  font-size: 0.9rem;
+  transition: background 0.2s;
+}
+
+.payment-button:hover {
+  background: #158968;
+}
+
+/* Paid Badge */
+.payment-status--paid {
+  background: #d1fae5;
+  color: #065f46;
+  padding: 0.5rem 1rem;
+  border-radius: 99px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Loader2, Sparkles } from "lucide-react"; 
 import axios from "axios";
 import { useSelector } from "react-redux";
 import API_URL from "../config/api";
@@ -7,18 +8,48 @@ export default function AddItems() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [startPrice, setStartPrice] = useState("");
-  const [currentPrice, setCurrentPrice] = useState("");
   const [startTime, setStartTime] = useState("");     // datetime-local
   const [endTime, setEndTime] = useState("");         // datetime-local
   const [categoryId, setCategoryId] = useState("");
   const [files, setFiles] = useState([]); // Store multiple files
   const [msg, setMsg] = useState("");
 
+  const [analysis, setAnalysis] = useState(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+
   const [isGenerating, setIsGenerating] = useState(false);
 
   // Access token from Redux store
   const user = useSelector((state) => state.auth.user);
   const token = user?.token;
+
+
+
+  const handleAnalyze = async () => {
+    if (!name || !description || !startPrice) {
+      alert("Please fill in Name, Description and Price first.");
+      return;
+    }
+
+    setIsAnalyzing(true);
+    setAnalysis(null); // Reset previous result
+
+    try {
+      const { data } = await axios.post(
+        `${API_URL}/api/items/analyze`,
+        { name, description, start_price: startPrice },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setAnalysis(data);
+    } catch (err) {
+      console.error(err);
+      alert("Analysis failed");
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -36,7 +67,7 @@ export default function AddItems() {
     form.append("name", name);
     form.append("description", description);
     form.append("start_price", startPrice || 0);
-    form.append("current_price", currentPrice || startPrice || 0);
+    form.append("current_price", startPrice || 0);
     
     // Convert datetime-local to ISO string if present
     if (startTime) form.append("start_time", new Date(startTime).toISOString());
@@ -104,25 +135,73 @@ export default function AddItems() {
           }}
         />
       </div>
-      <button 
-        type="button" 
-        onClick={handleGenerateDescription} 
-        disabled={isGenerating}
-        style={{ 
-          marginTop: "5px", 
-          marginBottom: "20px", 
-          background: "#6366f1", 
-          fontSize: "0.9rem"
-        }}
-      >
-        {isGenerating ? "Generating..." : "✨ Auto-Generate with AI"}
-      </button>
+            <button 
+              type="button" 
+              onClick={handleGenerateDescription} 
+              disabled={isGenerating}
+              style={{ 
+                marginTop: "5px", 
+                marginBottom: "20px", 
+                background: "#6366f1", 
+                fontSize: "0.9rem"
+              }}
+            >
+              {isGenerating ? "Generating..." : "✨ Auto-Generate with AI"}
+            </button>
+            
+      {/* --- START RAG FEATURE --- */}
+      <div style={{ margin: "20px 0", padding: "15px", border: "1px dashed #ccc", borderRadius: "8px", background: "#fafafa" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+          <h4 style={{ margin: 0, color: "#555" }}>AI Market Appraiser</h4>
+          <button 
+            type="button" 
+            onClick={handleAnalyze}
+            disabled={isAnalyzing}
+            style={{ 
+              background: "#4f46e5", 
+              padding: "8px 16px",
+              fontSize: "0.85rem" 
+            }}
+          >
+            {isAnalyzing ? "Analyzing..." : "Analyze Price & Quality"}
+          </button>
+        </div>
+
+        {analysis && (
+          <div className="analysis-result" style={{ background: "white", padding: "15px", borderRadius: "6px", border: "1px solid #eee" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
+              <span style={{ 
+                fontWeight: "bold", 
+                fontSize: "1.2rem", 
+                color: analysis.score > 7 ? "#10b981" : "#f59e0b" 
+              }}>
+                Score: {analysis.score}/10
+              </span>
+              <span style={{ 
+                background: "#e0e7ff", 
+                color: "#3730a3", 
+                padding: "4px 8px", 
+                borderRadius: "4px", 
+                fontSize: "0.8rem",
+                fontWeight: "600"
+              }}>
+                Est. Value: {analysis.estimated_value}
+              </span>
+            </div>
+            
+            <p style={{ margin: "0 0 8px 0", fontSize: "0.9rem", color: "#333" }}>
+              <strong>Verdict:</strong> {analysis.price_analysis}
+            </p>
+            <p style={{ margin: 0, fontSize: "0.9rem", color: "#666", fontStyle: "italic" }}>
+              "💡 {analysis.advice}"
+            </p>
+          </div>
+        )}
+      </div>
+      {/* --- END RAG FEATURE --- */}
 
       <label>Start price</label>
       <input type="number" step="0.01" value={startPrice} onChange={(e) => setStartPrice(e.target.value)} required />
-
-      <label>Current price</label>
-      <input type="number" step="0.01" value={currentPrice} onChange={(e) => setCurrentPrice(e.target.value)} />
 
       <label>Start time</label>
       <input type="datetime-local" value={startTime} onChange={(e) => setStartTime(e.target.value)} />

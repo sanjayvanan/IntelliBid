@@ -10,8 +10,10 @@ const {
   updateItem,
   generateDescription,
   getRecommendations,
-  getWonItems
+  getWonItems,
+  analyzeListing
 } = require("../controllers/itemsController");
+
 
 const { upload, processImage } = require("../middleware/upload");
 const requireAuth = require("../middleware/requireAuth");
@@ -23,6 +25,7 @@ router.post("/generate-description", requireAuth, generateDescription);
 router.get("/recommend/:id", requireAuth, getRecommendations);
 router.get("/:id", getItem);
 router.patch("/bidup/:id", requireAuth, updateItem);
+router.post("/analyze", requireAuth, analyzeListing);
 
 // for S3 we need this middleware
 // Allow up to 5 images

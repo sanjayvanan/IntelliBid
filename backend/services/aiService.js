@@ -101,8 +101,55 @@ const embedText = async (text) => {
   return embedding;
 };
 
+
+/**
+ * RAG GENERATION: Analyze a draft listing against real sold data.
+ */
+const generateListingAnalysis = async (draft, soldItems) => {
+  // Format sold items for the prompt
+  const marketContext = soldItems.map(item => 
+    `- "${item.name}" sold for $${item.current_price}. Desc: ${item.description.substring(0, 100)}...`
+  ).join("\n");
+
+  const prompt = `
+    You are an expert auction appraiser. 
+    
+    USER DRAFT LISTING:
+    Name: "${draft.name}"
+    Price: $${draft.price}
+    Description: "${draft.description}"
+
+    REAL MARKET DATA (Similar items that sold recently):
+    ${marketContext}
+
+    TASK:
+    Analyze the user's draft based *only* on the market data provided.
+    
+    Return a raw JSON object (no markdown formatting) with these fields:
+    1. "score": A number 1-10 rating the quality of their listing.
+    2. "price_analysis": A short string assessing their price (e.g. "Too low", "Fair", "Too high").
+    3. "estimated_value": A string range (e.g. "$120 - $150") based on the sold items.
+    4. "advice": A short, actionable tip to improve the description or title.
+  `;
+
+  try {
+    const result = await model.generateContent(prompt);
+    const text = result.response.text()
+      .replace(/```json/g, "")
+      .replace(/```/g, "")
+      .trim();
+      
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("AI Analysis Failed:", error);
+    return null; // Fail gracefully
+  }
+};
+
+
 module.exports = {
   generateItemDescription,
   chooseRecommendedIds,
   embedText,
+  generateListingAnalysis,
 };

@@ -1,10 +1,8 @@
 // controllers/itemsController.js
 
 const itemService = require("../services/itemService");
-const { generateItemDescription } = require("../services/aiService");
-const {
-  getRecommendationsForItem,
-} = require("../services/recommendationService");
+const { generateItemDescription, embedText, generateListingAnalysis } = require("../services/aiService");
+const { getRecommendationsForItem} = require("../services/recommendationService");
 
 // ----------------------
 // Generate description
@@ -13,7 +11,7 @@ const generateDescription = async (req, res) => {
   try {
     const { name, category } = req.body;
 
-    if (!name) {
+    if (!name) {  
       return res.status(400).json({ error: "Item name is required" });
     }
 
@@ -212,6 +210,48 @@ const getWonItems = async (req, res) => {
   }
 };
 
+
+// ----------------------
+// RAG: Analyze Listing
+// ----------------------
+const analyzeListing = async (req, res) => {
+  try {
+    const { name, description, start_price } = req.body;
+
+    if (!name || !description) {
+      return res.status(400).json({ error: "Name and Description required" });
+    }
+
+    // 1. Create Vector from Draft (The "Query")
+    const draftText = `${name}. ${description}`;
+    const embedding = await embedText(draftText);
+
+    // 2. Retrieve Ground Truth (The "Retrieval")
+    const soldItems = await itemService.getSimilarSoldItems(embedding);
+
+    if (soldItems.length === 0) {
+      return res.json({ 
+        score: 5, 
+        price_analysis: "Unknown", 
+        estimated_value: "N/A", 
+        advice: "No similar sold items found yet. You are the first!" 
+      });
+    }
+
+    // 3. Generate Insight (The "Generation")
+    const analysis = await generateListingAnalysis(
+      { name, description, price: start_price }, 
+      soldItems
+    );
+
+    res.json(analysis);
+
+  } catch (error) {
+    console.error("Analysis Error:", error);
+    res.status(500).json({ error: "Failed to analyze listing" });
+  }
+};
+
 module.exports = {
   getMyItems,
   getItem,
@@ -220,5 +260,6 @@ module.exports = {
   updateItem,
   generateDescription,
   getRecommendations,
-  getWonItems
+  getWonItems,
+  analyzeListing
 };
