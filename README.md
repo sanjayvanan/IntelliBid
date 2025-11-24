@@ -1,4 +1,4 @@
-# IntelliBid
+# IntelliBid · [Live Demo](https://intelli-bid.vercel.app)
 
 IntelliBid is a modern, AI-powered auction platform that enables real-time bidding, intelligent item recommendations, automated auction management, and seamless online product selling. With a hybrid database architecture, it combines real-time sockets, vector similarity search, and generative AI to deliver a powerful, high-performance auction and e-commerce experience.
 
