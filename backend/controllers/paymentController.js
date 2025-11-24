@@ -39,7 +39,7 @@ const verifyPayment = async (req, res) => {
       razorpayPaymentId,
       razorpaySignature,
       itemId,
-      shippingAddress // <--- NEW
+      shippingAddress
     } = req.body;
 
     // ... signature verification logic (shasum stuff) ...

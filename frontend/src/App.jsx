@@ -10,6 +10,7 @@ import AddItems from './pages/AddItems'
 import ItemDetails from './pages/ItemDetails'
 import Profile from './pages/Profile'
 
+
 function App() {
   const user = useSelector((state) => state.auth.user)
 
