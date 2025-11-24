@@ -327,6 +327,12 @@ const getSimilarSoldItems = async (descriptionVector, limit = 5) => {
   return rows;
 };
 
+
+const getAllCategories = async () => {
+  const { rows } = await db.query("SELECT id, name FROM categories ORDER BY name ASC");
+  return rows;
+};
+
 module.exports = {
   getItemsBySeller,
   getItemById,
@@ -337,5 +343,6 @@ module.exports = {
   getRecommendationBaseData,
   getSimilarItemsByEmbedding,
   searchItems,
-  getSimilarSoldItems
+  getSimilarSoldItems,
+  getAllCategories
 };

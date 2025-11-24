@@ -252,6 +252,18 @@ const analyzeListing = async (req, res) => {
   }
 };
 
+
+
+const getCategories = async (req, res) => {
+  try {
+    const categories = await itemService.getAllCategories();
+    res.json(categories);
+  } catch (error) {
+    console.error("Get Categories Error:", error);
+    res.status(500).json({ error: "Failed to fetch categories" });
+  }
+};
+
 module.exports = {
   getMyItems,
   getItem,
@@ -261,5 +273,6 @@ module.exports = {
   generateDescription,
   getRecommendations,
   getWonItems,
-  analyzeListing
+  analyzeListing,
+  getCategories
 };
