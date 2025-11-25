@@ -1,13 +1,14 @@
-import { Link, useNavigate } from 'react-router-dom' // 1. Import useNavigate
+import { Link, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { logout } from '../features/authSlice'
 import { useState, useRef, useEffect } from 'react'
 import { fetchItems, resetItems } from '../features/itemsSlice'
+import logoImg from '../assets/IntelliBid.png'
 import "../styles/Navbar.css"
 
 const Navbar = () => {
   const dispatch = useDispatch()
-  const navigate = useNavigate() // 2. Initialize the hook
+  const navigate = useNavigate()
   const user = useSelector((state) => state.auth.user)
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
@@ -19,7 +20,7 @@ const Navbar = () => {
     e.preventDefault()
     dispatch(resetItems())
     dispatch(fetchItems({ page: 1, search: searchTerm }))
-    navigate('/') // 3. Force redirect to Home page to show results
+    navigate('/') // Redirect to home to show results
   }
 
   // Function to reset everything when clicking the logo
@@ -27,7 +28,6 @@ const Navbar = () => {
     setSearchTerm("") 
     dispatch(resetItems()) 
     dispatch(fetchItems({ page: 1, search: "" }))
-    // No need to navigate('/') here because the Link component handles it
   }
 
   const handleLogout = () => {
@@ -50,8 +50,9 @@ const Navbar = () => {
     <header className="navbar">
       <div className="container">
         
-        {/* Logo resets search and takes you home */}
+        {/* Logo with Image & Text */}
         <Link to="/" className="logo" onClick={handleLogoClick}>
+          <img src={logoImg} alt="IntelliBid Logo" className="logo-img" />
           <h1>IntelliBid</h1>
         </Link>
 

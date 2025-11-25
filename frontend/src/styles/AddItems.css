@@ -1,8 +1,9 @@
 /* Layout Container */
 .add-item-page {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem;
+  max-width: 100%;
+  margin: 0;
+  padding: 2rem 30px;
+  
   font-family: 'Poppins', sans-serif;
   background-color: #f8f9fa;
   min-height: 100vh;

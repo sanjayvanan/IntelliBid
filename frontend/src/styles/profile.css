@@ -1,9 +1,9 @@
 /* src/styles/Profile.css */
 
 .profile-page {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 40px 20px;
+  max-width: 100%;
+  margin: 0;
+  padding: 40px 30px;
   font-family: 'Poppins', sans-serif;
   color: #333;
 }

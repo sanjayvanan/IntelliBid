@@ -1,9 +1,10 @@
 /* Main Container */
 .display-items {
-  padding: 2rem;
-  max-width: 1280px;
-  margin: 0 auto;
-  background-color: #f8f9fa; /* Light background for contrast */
+  padding: 2rem 30px; 
+  max-width: 100%; 
+  width: 100%;
+  margin: 0; 
+  background-color: #f8f9fa; 
   min-height: 80vh;
 }
 

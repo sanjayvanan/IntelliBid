@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import DisplayItems from '../components/DisplayItems';
+import DisplayItems from '../components/displayItems.jsx';
 import '../styles/Home.css'; // Import the new styles
 import { useSelector } from 'react-redux';
 
@@ -63,7 +63,7 @@ const Home = () => {
       )}
 
       {/* 3. The Grid (Existing Component) */}
-      <section id="live-auctions" style={{ maxWidth: '1280px', margin: '0 auto' }}>
+      <section id="live-auctions" style={{ width: '100%', margin: 0 }}>
         <DisplayItems />
       </section>
 

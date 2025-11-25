@@ -333,6 +333,12 @@ const getAllCategories = async () => {
   return rows;
 };
 
+const getLastBid = async (itemId) => {
+  const query = `SELECT * FROM bids WHERE item_id = $1 ORDER BY amount DESC LIMIT 1`;
+  const { rows } = await db.query(query, [itemId]);
+  return rows[0]; // Returns undefined if no bids exist
+};
+
 module.exports = {
   getItemsBySeller,
   getItemById,
@@ -344,5 +350,6 @@ module.exports = {
   getSimilarItemsByEmbedding,
   searchItems,
   getSimilarSoldItems,
-  getAllCategories
+  getAllCategories,
+  getLastBid
 };

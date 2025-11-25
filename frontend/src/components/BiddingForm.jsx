@@ -44,7 +44,8 @@ const BiddingForm = ({ current_price, itemId : id , onBidSuccess}) => {
       } 
       catch (error) {
         console.error("Error placing bid:", error);
-        toast.error('Failed to place bid!');
+        const serverMessage = error.response?.data?.error;  
+        toast.error(serverMessage || 'Failed to place bid!');
       }
     }
   };

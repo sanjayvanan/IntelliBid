@@ -1,8 +1,8 @@
 /* ItemDetails.css */
 
 :root {
-  --page-max: 1200px;
-  --pad: 24px;
+  --page-max: 100%;
+  --pad: 30px;
   --gap: 48px;
   --text: #111;
   --muted: #555;

@@ -8,20 +8,35 @@
 }
 
 .navbar .container {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 10px 20px;
+  
+  max-width: 100%; 
+  width: 100%;
+  margin: 0;
+  padding: 10px 30px; 
+  
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20px; /* Spacing between Logo, Search, User */
+  gap: 20px;
 }
 
 /* Logo */
 .logo {
   text-decoration: none;
   color: #333;
-  flex-shrink: 0; /* Prevent logo from shrinking */
+  flex-shrink: 0; 
+  
+  /* Flexbox to align image and text side-by-side */
+  display: flex;
+  align-items: center;
+  gap: 10px; 
+}
+
+/* New class for the Logo Image */
+.logo-img {
+  height: 32px; /* Adjust this height to match your navbar size */
+  width: auto;
+  object-fit: contain;
 }
 
 .logo h1 {

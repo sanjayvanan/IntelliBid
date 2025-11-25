@@ -161,6 +161,12 @@ const updateItem = async (req, res) => {
       return res.status(400).json({ error: "Auction has not started yet" });
     }
 
+    // Check if the user is already the highest bidder
+    const lastBid = await itemService.getLastBid(itemId);
+    if (lastBid && lastBid.bidder_id === bidderId) {
+      return res.status(400).json({ error: "You are already the highest bidder" });
+    }
+
     if (bidAmount < item.current_price) {
       return res
         .status(400)
