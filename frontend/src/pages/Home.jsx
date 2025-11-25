@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import DisplayItems from '../components/displayItems.jsx';
+import DisplayItems from '../components/DisplayItems.jsx';
 import '../styles/Home.css'; // Import the new styles
 import { useSelector } from 'react-redux';
 
