@@ -43,8 +43,8 @@ const Navbar = () => {
         <Link to="/" className="logo">
           <h1>IntelliBid</h1>
         </Link>
-
         {/* Search Input */}
+        {user && 
         <form 
           className="search-form"
           onSubmit={handleSearch}
@@ -62,7 +62,8 @@ const Navbar = () => {
           >
             Search
           </button>
-        </form>
+        </form>}
+        
 
         {/* User Menu */}
         <nav className="nav-links">
