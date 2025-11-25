@@ -100,7 +100,8 @@ export default function AddItems() {
       setDescription(res.data.description);
     } catch (error) {
       console.error(error);
-      alert("Failed to generate description.");
+      const serverMsg = error.response?.data?.error || error.response?.data;
+      alert(serverMsg || "Failed to generate description. Try again.");
     } finally {
       setIsGenerating(false);
     }
