@@ -3,6 +3,8 @@ const express = require("express");
 const cors = require("cors");
 const http = require("http");
 const {Server} = require("socket.io")
+const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
 
 const userRoutes = require("./routes/user");
 const itemRoutes = require("./routes/items");
@@ -12,7 +14,17 @@ const connectMongo = require("./db/mongo");
 require('./jobs/auctionCloser'); 
 
 const app = express();
+app.use(helmet());
 
+//Configure Rate Limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: "Too many requests from this IP, please try again after 15 minutes"
+});
+
+// Apply rate limiter to all requests
+app.use(limiter);
 
 //create http server wrapping 
 const server = http.createServer(app);

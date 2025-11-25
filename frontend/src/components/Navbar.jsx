@@ -1,12 +1,13 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom' // 1. Import useNavigate
 import { useDispatch, useSelector } from 'react-redux'
 import { logout } from '../features/authSlice'
 import { useState, useRef, useEffect } from 'react'
 import { fetchItems, resetItems } from '../features/itemsSlice'
-import "../styles/Navbar.css" // Import the new CSS file
+import "../styles/Navbar.css"
 
 const Navbar = () => {
   const dispatch = useDispatch()
+  const navigate = useNavigate() // 2. Initialize the hook
   const user = useSelector((state) => state.auth.user)
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
@@ -18,6 +19,15 @@ const Navbar = () => {
     e.preventDefault()
     dispatch(resetItems())
     dispatch(fetchItems({ page: 1, search: searchTerm }))
+    navigate('/') // 3. Force redirect to Home page to show results
+  }
+
+  // Function to reset everything when clicking the logo
+  const handleLogoClick = () => {
+    setSearchTerm("") 
+    dispatch(resetItems()) 
+    dispatch(fetchItems({ page: 1, search: "" }))
+    // No need to navigate('/') here because the Link component handles it
   }
 
   const handleLogout = () => {
@@ -40,9 +50,11 @@ const Navbar = () => {
     <header className="navbar">
       <div className="container">
         
-        <Link to="/" className="logo">
+        {/* Logo resets search and takes you home */}
+        <Link to="/" className="logo" onClick={handleLogoClick}>
           <h1>IntelliBid</h1>
         </Link>
+
         {/* Search Input */}
         {user && 
         <form 
