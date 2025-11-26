@@ -4,21 +4,40 @@ IntelliBid is a modern, AI-powered auction platform that enables real-time biddi
 
 ## 🚀 Key Features
 
+### **1️⃣ Core Auction Functionality**
 - **Real-Time Bidding**: Live bid updates using WebSockets (Socket.io), ensuring instant feedback for all participants.
+- **Automated Auction Management**: A dedicated background process autonomously manages the auction lifecycle, monitoring expired listings, updating their status from 'active' to 'ended', and triggering automated email notifications to winners using Nodemailer.
 
+---
+
+### **2️⃣ AI-Powered Intelligence**
 - **AI-Powered Listings**: Auto-generate professional item descriptions using Google Gemini AI.
+- **RAG-Based Market Appraiser**: Uses Retrieval-Augmented Generation (RAG) for data-driven pricing insights. Draft listings are embedded using `text-embedding-004`, matched against similar **sold** items via vector search, and evaluated by Gemini to estimate value and analyze pricing strategy.
+- **AI Smart & Vector-Based Recommendations**: Item descriptions are embedded into vector space, and the system calculates L2 (Euclidean) distance to recommend semantically similar active auctions.
 
-- **AI Smart & Vector-Based Recommendations**: By pairing AI smart recommendations with vector-based logic, the system embeds item descriptions into vector space. When a user views an item, the recommendation service calculates the L2 (Euclidean) distance between vectors to suggest the most semantically similar active auctions, and then the similar items are also filtered by AI for better relevance.
+---
+
+### **3️⃣ Media & Asset Handling**
+- **Multi-Image Support**: Upload and display multiple images for auction items via AWS S3.
+- **Smart Image Optimization**: Automatically resizes and optimizes uploaded images using `Sharp` before storing them in AWS S3 for improved performance.
+
+---
+
+### **4️⃣ Data & Storage Architecture**
 - **Hybrid Database Architecture**:
   - **MongoDB**: Manages user authentication and profiles.
-  - **PostgreSQL**: Handles transactional data like items, bids, and vector embeddings.
+  - **PostgreSQL**: Stores transactional data like items, bids, and vector embeddings.
 
-- **Multi-Image Support**: Upload and display multiple images for auction items via AWS S3.
+---
 
-- **Automated Auction Management**: A dedicated background process autonomously manages the auction lifecycle. It continually monitors for expired listings, instantly transitioning their status from 'active' to 'ended' and triggering automated email notifications to winners using Nodemailer, ensuring the platform operates without manual intervention.
-
+### **5️⃣ Security, Payments & Protection**
 - **Secure Authentication**: JSON Web Token (JWT) based authentication.
+- **Secure Payments**: Integrated Razorpay gateway enables seamless and secure payment processing for auction winners.
+- **API Rate Limiting**: Prevents abuse with global rate limits and specific quotas for AI generation features using `express-rate-limit`.
 
+---
+
+  
 ## 🛠️ Tech Stack
 
 ### Frontend
@@ -99,6 +118,10 @@ SMTP_PORT=587
 SMTP_USER=your_email@example.com
 SMTP_PASS=your_email_password
 EMAIL_FROM="IntelliBid <no-reply@intellibid.com>"
+
+# Payment Gateway (Razorpay)
+RAZORPAY_KEY_ID=your_razorpay_key_id
+RAZORPAY_KEY_SECRET=your_razorpay_key_secret
 ```
 
 **Note**: Ensure the pgvector extension is enabled in your PostgreSQL database (`CREATE EXTENSION vector;`).
@@ -121,6 +144,7 @@ npm install
 **Environment Variables**: Create a `.env` file in the frontend directory:
 ```env
 VITE_API_URL=http://localhost:4000
+VITE_RAZORPAY_KEY_ID=your_razorpay_key_id
 ```
 
 Start the frontend development server:
