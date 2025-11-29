@@ -11,9 +11,9 @@ IntelliBid is a modern, AI-powered auction platform that enables real-time biddi
 ---
 
 ### **2️⃣ AI-Powered Intelligence**
-- **AI-Powered Listings**: Auto-generate professional item descriptions using Google Gemini AI.
+- **AI Description Generator**: Auto-generate professional item descriptions using Google Gemini AI.
 - **RAG-Based Market Appraiser**: Uses Retrieval-Augmented Generation (RAG) for data-driven pricing insights. Draft listings are embedded using `text-embedding-004`, matched against similar **sold** items via vector search, and evaluated by Gemini to estimate value and analyze pricing strategy.
-- **AI Smart & Vector-Based Recommendations**: Item descriptions are embedded into vector space, and the system calculates L2 (Euclidean) distance to recommend semantically similar active auctions.
+- **AI Smart & Vector-Based Recommendations**: Uses AI-generated vector embeddings to represent item descriptions in a high-dimensional vector space and applies L2 (Euclidean) distance to retrieve and recommend semantically similar active auctions.
 
 ---
 
@@ -41,7 +41,7 @@ IntelliBid is a modern, AI-powered auction platform that enables real-time biddi
 ## 🛠️ Tech Stack
 
 ### Frontend
-- **Framework**: React (Vite)
+- **Library**: React (Vite)
 - **State Management**: Redux Toolkit
 - **Routing**: React Router DOM
 - **Styling**: CSS Modules / Custom CSS
