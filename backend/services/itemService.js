@@ -61,7 +61,7 @@ const getItemsBySeller = async (sellerId) => {
  */
 const getItemById = async (id) => {
   const query = `
-    SELECT items.*, categories.name AS category_name
+    SELECT items.*, categories.name AS category_name 
     FROM items
     LEFT JOIN categories ON items.category_id = categories.id
     WHERE items.id = $1
@@ -185,23 +185,55 @@ const createItem = async (item) => {
 /**
  * Update item bid.
  */
-const updateItemBid = async (itemId, bidAmount, bidderId) => {
+// Handles writing a bid to the DB and updating the item’s current state.
+// This runs inside a single transaction so nothing is half-updated.
+const updateItemBid = async (
+  itemId,
+  bidAmount,
+  winningBidderId, // The user who ends up as the actual highest bidder after logic resolves
+  proxyMaxBid,     // That user’s hidden maximum bid value
+  initiatorId      // The user who clicked “Bid” (may or may not be the winner)
+) => {
   const client = await db.connect();
+
   try {
-    const values = [bidAmount, itemId, bidderId];
+    // Start the transaction — either everything succeeds, or nothing applies.
     await client.query("BEGIN");
 
-    const insertQuery = `INSERT INTO bids(amount, item_id, bidder_id) VALUES($1,$2,$3) RETURNING *`;
-    const bidInsert = await client.query(insertQuery, values);
-
-    // Return the updated item with category info
-    const updateQuery = `
-      UPDATE items SET current_price = $1 WHERE id = $2 
+    // 1. Record the visible bid attempt.
+    //    We store the initiator as the bidder because they were the one who triggered the action,
+    //    even if an auto-proxy system outbids them immediately.
+    const insertQuery = `
+      INSERT INTO bids (amount, item_id, bidder_id)
+      VALUES ($1, $2, $3)
       RETURNING *
     `;
-    await client.query(updateQuery, [bidAmount, itemId]);
-    
-    // Fetch full details for socket/response
+    const bidInsert = await client.query(insertQuery, [
+      bidAmount,
+      itemId,
+      initiatorId
+    ]);
+
+    // 2. Update the item’s current price and proxy settings.
+    //    winningBidderId = user who ends up being the effective highest bidder.
+    const updateQuery = `
+      UPDATE items
+      SET 
+        current_price   = $1,
+        proxy_max_bid   = $3,
+        proxy_bidder_id = $4
+      WHERE id = $2
+      RETURNING *
+    `;
+
+    await client.query(updateQuery, [
+      bidAmount,      // $1 — new visible current price
+      itemId,         // $2 — which item is being updated
+      proxyMaxBid,    // $3 — winner’s secret max
+      winningBidderId // $4 — winner’s user ID
+    ]);
+
+    // 3. Grab the fully updated item (including category name)
     const fullItemQuery = `
       SELECT items.*, categories.name AS category_name
       FROM items
@@ -210,6 +242,7 @@ const updateItemBid = async (itemId, bidAmount, bidderId) => {
     `;
     const itemResult = await client.query(fullItemQuery, [itemId]);
 
+    // Everything succeeded — finalize the transaction.
     await client.query("COMMIT");
 
     return {
@@ -217,12 +250,14 @@ const updateItemBid = async (itemId, bidAmount, bidderId) => {
       item: itemResult.rows[0],
     };
   } catch (error) {
+    // If anything breaks, undo all writes.
     await client.query("ROLLBACK");
     throw error;
   } finally {
     client.release();
   }
 };
+
 
 const getCandidateItems = async (category_id, excluded_id, limit = 20) => {
   const query = `
@@ -339,6 +374,72 @@ const getLastBid = async (itemId) => {
   return rows[0]; // Returns undefined if no bids exist
 };
 
+
+const processBidTransaction = async (
+  itemId,
+  newPrice,
+  newLeaderId,
+  newProxyMax,
+  bidsToInsert // Array of { bidder_id, amount }
+) => {
+  const client = await db.connect();
+  try {
+    await client.query("BEGIN");
+
+    // 1. Insert Bid History Rows
+    // We loop through bidsToInsert (usually 1 or 2 rows)
+    for (const bid of bidsToInsert) {
+        await client.query(
+            `INSERT INTO bids(amount, item_id, bidder_id, created_at) VALUES($1, $2, $3, NOW())`,
+            [bid.amount, itemId, bid.bidder_id]
+        );
+    }
+
+    // 2. Update Item State
+    const updateQuery = `
+      UPDATE items 
+      SET 
+        current_price = $1, 
+        proxy_max_bid = $2, 
+        proxy_bidder_id = $3
+      WHERE id = $4 
+      RETURNING *
+    `;
+    
+    // Ensure numbers are formatted for Numeric/Decimal columns
+    await client.query(updateQuery, [
+        newPrice.toFixed(2),
+        newProxyMax.toFixed(2),
+        newLeaderId,
+        itemId
+    ]);
+    
+    // 3. Fetch full updated item for response
+    const fullItemQuery = `
+      SELECT items.*, categories.name AS category_name
+      FROM items
+      LEFT JOIN categories ON items.category_id = categories.id
+      WHERE items.id = $1
+    `;
+    const itemResult = await client.query(fullItemQuery, [itemId]);
+
+    await client.query("COMMIT");
+
+    return {
+      item: itemResult.rows[0],
+      // We return the last bid inserted as "latest_bid" for reference
+      last_bid_amount: bidsToInsert.length > 0 ? bidsToInsert[bidsToInsert.length - 1].amount : newPrice
+    };
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+
+
 module.exports = {
   getItemsBySeller,
   getItemById,
@@ -351,5 +452,6 @@ module.exports = {
   searchItems,
   getSimilarSoldItems,
   getAllCategories,
-  getLastBid
+  getLastBid,
+  processBidTransaction 
 };

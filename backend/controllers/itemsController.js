@@ -136,67 +136,146 @@ const createItem = async (req, res) => {
 // ----------------------
 // Update bid
 // ----------------------
+// Handles placing or updating a bid on an item (with proxy bidding support)
 const updateItem = async (req, res) => {
+  const BID_INCREMENT = 1.00; // Smallest amount needed to outbid someone
+
   try {
     const { id: itemId } = req.params;
-    const { bidAmount } = req.body;
+    const { bidAmount: rawBidAmount } = req.body;
     const bidderId = req.user._id.toString();
 
-    if (!bidAmount || !itemId) {
-      return res.status(400).json({ error: "Missing Fields" });
+    // --- Basic input checks ---
+    const userMaxBid = parseFloat(rawBidAmount);
+    if (!userMaxBid || !itemId) {
+      return res.status(400).json({ error: "Missing required fields." });
     }
 
+    // --- Fetch the item from the database ---
     const item = await itemService.getItemById(itemId);
     if (!item) {
-      return res.status(404).json({ error: "Item not found" });
+      return res.status(404).json({ error: "Item not found." });
     }
 
-    // Security Check: Prevent seller from bidding
+    // Parse stored values safely
+    const currentPrice = parseFloat(item.current_price);
+    const currentLeaderId = item.proxy_bidder_id; // Current winning bidder
+    const currentLeaderMax = parseFloat(item.proxy_max_bid || currentPrice); // Their max proxy amount
+
+    // --- Auction status checks ---
+    if (item.status !== "active") {
+      return res.status(400).json({ error: "This auction is closed." });
+    }
     if (item.seller_id === bidderId) {
-      return res.status(403).json({ error: "You cannot bid on your own item" });
+      return res.status(403).json({ error: "You can't bid on your own listing." });
     }
-
-    // Check if the auction has started
     if (new Date(item.start_time) > new Date()) {
-      return res.status(400).json({ error: "Auction has not started yet" });
+      return res.status(400).json({ error: "This auction hasn't started yet." });
     }
 
-    // Check if the user is already the highest bidder
-    const lastBid = await itemService.getLastBid(itemId);
-    if (lastBid && lastBid.bidder_id === bidderId) {
-      return res.status(400).json({ error: "You are already the highest bidder" });
+    // Make sure a challenger is bidding above the minimum required step
+    if (bidderId !== currentLeaderId && userMaxBid < currentPrice + BID_INCREMENT) {
+      return res.status(400).json({
+        error: `Your bid must be at least $${(currentPrice + BID_INCREMENT).toFixed(2)}.`
+      });
     }
 
-    if (bidAmount < item.current_price) {
-      return res
-        .status(400)
-        .json({ error: "Bid must be higher than the current price" });
+    // Prepare updated values
+    let newPrice = currentPrice;
+    let newLeaderId = currentLeaderId;
+    let newProxyMax = currentLeaderMax;
+    let bidsToRecord = [];
+    let message = "";
+
+    // ==========================
+    //   PROXY BIDDING LOGIC
+    // ==========================
+
+    // A) First ever bid on this item
+    if (!currentLeaderId) {
+      // Start at the listed price (or the current price if already set)
+      newPrice = Math.max(item.start_price, currentPrice);
+
+      newLeaderId = bidderId;
+      newProxyMax = userMaxBid;
+
+      bidsToRecord.push({ bidder_id: bidderId, amount: newPrice });
+      message = `You're now the highest bidder at $${newPrice.toFixed(2)}!`;
     }
 
-    if (item?.status !== "active") {
-      return res.status(400).json({ error: "Auction is closed" });
+    // B) User is already the leader and wants to raise their proxy max
+    else if (bidderId === currentLeaderId) {
+      if (userMaxBid > currentLeaderMax) {
+        newProxyMax = userMaxBid;
+        message = `Your maximum bid has been updated to $${userMaxBid.toFixed(2)}.`;
+      } else {
+        return res.status(400).json({
+          error: "Your new max must be higher than your previous max."
+        });
+      }
     }
 
-    const result = await itemService.updateItemBid(
+    // C) Challenger bids, but leader's proxy auto-defends
+    else if (userMaxBid <= currentLeaderMax) {
+      // Auto-bid just high enough to beat the challenger (but not past leader's max)
+      const autoDefendPrice = Math.min(userMaxBid + BID_INCREMENT, currentLeaderMax);
+
+      newPrice = autoDefendPrice;
+      newLeaderId = currentLeaderId;
+      newProxyMax = currentLeaderMax;
+
+      // Log both the challenger’s attempt and the system’s auto-bid
+      bidsToRecord.push({ bidder_id: bidderId, amount: userMaxBid });
+      bidsToRecord.push({ bidder_id: currentLeaderId, amount: autoDefendPrice });
+
+      message = `You’ve been outbid. Current price is $${newPrice.toFixed(2)}.`;
+    }
+
+    // D) Challenger outbids the leader’s max proxy
+    else {
+      // Raise price just enough to beat the old max (but not to challenger’s max unless needed)
+      const priceToWin = Math.min(currentLeaderMax + BID_INCREMENT, userMaxBid);
+
+      newPrice = priceToWin;
+      newLeaderId = bidderId;
+      newProxyMax = userMaxBid;
+
+      // Optionally log the old leader reaching their max
+      if (currentLeaderMax > currentPrice) {
+        bidsToRecord.push({ bidder_id: currentLeaderId, amount: currentLeaderMax });
+      }
+
+      // Log the winning bid (visible amount)
+      bidsToRecord.push({ bidder_id: bidderId, amount: newPrice });
+
+      message = `Congrats! You're now the highest bidder at $${newPrice.toFixed(2)}.`;
+    }
+
+    // --- Save everything in one transaction ---
+    const result = await itemService.processBidTransaction(
       itemId,
-      bidAmount,
-      bidderId
+      newPrice,
+      newLeaderId,
+      newProxyMax,
+      bidsToRecord
     );
 
+    // --- Notify real-time subscribers ---
     const io = req.app.get("io");
-
     io.emit("bid_placed", {
-      itemId: itemId,
+      itemId,
       current_price: result.item.current_price,
-      bidderId: bidderId,
+      bidderId: newLeaderId,
     });
 
-    res.json(result);
+    return res.json({ ...result, message });
+
   } catch (err) {
-    console.log(err);
-    res.status(500).json({ err });
+    console.error("Bid Error:", err);
+    return res.status(500).json({ error: err.message || "Internal server error." });
   }
 };
+
 
 
 
