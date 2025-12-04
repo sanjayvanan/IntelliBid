@@ -13,7 +13,8 @@ const {
   getRecommendations,
   getWonItems,
   analyzeListing,
-  getCategories
+  getCategories,
+  generateAttributes  
 } = require("../controllers/itemsController");
 
 // Allow only 10 AI requests every 30 minutes per IP
@@ -32,6 +33,7 @@ router.get("/categories", getCategories);
 router.get("/", getItems);
 router.get("/won", requireAuth, getWonItems);
 router.post("/generate-description", requireAuth, aiLimiter, generateDescription);
+router.post("/generate-attributes", requireAuth, aiLimiter, generateAttributes);
 router.post("/analyze", requireAuth, aiLimiter, analyzeListing);
 router.get("/recommend/:id", requireAuth, getRecommendations);
 router.get("/:id", getItem);

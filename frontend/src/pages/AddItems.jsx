@@ -9,10 +9,9 @@ export default function AddItems() {
   const [description, setDescription] = useState("");
   const [startPrice, setStartPrice] = useState("");
 
-  
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
-  const [categoryId, setCategoryId] = useState("");
+  const [categoryId, setCategoryId] = useState(""); // Initialize as empty string
   const [condition, setCondition] = useState("New");
   const [categories, setCategories] = useState([]); 
   const [files, setFiles] = useState([]); 
@@ -22,6 +21,11 @@ export default function AddItems() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [analysis, setAnalysis] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  // Dynamic Attributes State
+  const [attributeFields, setAttributeFields] = useState([]); 
+  const [attributeValues, setAttributeValues] = useState({}); 
+  const [isGenAttributes, setIsGenAttributes] = useState(false);
 
   // Preview Carousel
   const [previewIndex, setPreviewIndex] = useState(0);
@@ -35,8 +39,8 @@ export default function AddItems() {
       try {
         const { data } = await axios.get(`${API_URL}/api/items/categories`);
         setCategories(data);
-        // Default to first category if available
-        if (data.length > 0) setCategoryId(data[0].id);
+        // REMOVED: Defaulting to the first category. 
+        // Now it stays "" so the user sees "Select Category" placeholder.
       } catch (err) {
         console.error("Failed to load categories", err);
       }
@@ -48,8 +52,56 @@ export default function AddItems() {
     ? Array.from(files).map(file => URL.createObjectURL(file)) 
     : [];
 
+  // --- GENERATE ATTRIBUTES HANDLER (FIXED) ---
+  const handleGenerateAttributes = async () => {
+    if (!name) {
+      alert("Please enter an Item Name first!");
+      return;
+    }
+    // Strict check: Ensure a valid category is selected
+    if (!categoryId) {
+      alert("Please select a Category first!");
+      return;
+    }
+
+    setIsGenAttributes(true);
+    try {
+      // Find category name for the AI fallback context
+      const selectedCat = categories.find(c => c.id == categoryId);
+      const catName = selectedCat ? selectedCat.name : "General";
+      
+      const { data } = await axios.post(
+        `${API_URL}/api/items/generate-attributes`,
+        { 
+          name, 
+          category: catName,
+          categoryId: categoryId // <--- FIX: Explicitly sending the ID
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      if (Array.isArray(data) && data.length > 0) {
+        setAttributeFields(data);
+        // Reset values so old data doesn't persist for a new item type
+        setAttributeValues({});
+      } else {
+        alert("Could not detect specific attributes for this item.");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Failed to generate attributes. Try again.");
+    } finally {
+      setIsGenAttributes(false);
+    }
+  };
+
+  const handleAttributeChange = (key, value) => {
+    setAttributeValues(prev => ({ ...prev, [key]: value }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!categoryId) return setMsg("Please select a category."); // Validation
     if (!files || files.length === 0) return setMsg("Pick at least one image.");
 
     const form = new FormData();
@@ -60,13 +112,16 @@ export default function AddItems() {
     form.append("name", name);
     form.append("description", description);
     form.append("start_price", startPrice || 0);
-    form.append("current_price", startPrice || 0); // Set current to start price initially
+    form.append("current_price", startPrice || 0); 
     form.append("condition", condition);
     
     if (startTime) form.append("start_time", new Date(startTime).toISOString());
     if (endTime) form.append("end_time", new Date(endTime).toISOString());
     
     form.append("category_id", categoryId);
+
+    // Send dynamic attributes as a JSON string
+    form.append("dynamic_details", JSON.stringify(attributeValues));
 
     try {
       await axios.post(`${API_URL}/api/items`, form, {
@@ -87,14 +142,18 @@ export default function AddItems() {
       alert("Please enter an Item Name first!");
       return;
     }
+    // Ensure category is selected for better context, though AI handles "General"
+    const catName = categories.find(c => c.id == categoryId)?.name || "General";
+
     setIsGenerating(true);
     try {
-      // Find category name for better AI context
-      const catName = categories.find(c => c.id == categoryId)?.name || "General";
-      
       const res = await axios.post(
         `${API_URL}/api/items/generate-description`,
-        { name, category: catName },
+        { 
+          name, 
+          category: catName,
+          attributes: attributeValues 
+        },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setDescription(res.data.description);
@@ -153,6 +212,61 @@ export default function AddItems() {
             </div>
 
             <div className="form-group">
+                <label>Category</label>
+                <select 
+                  value={categoryId} 
+                  onChange={(e) => setCategoryId(e.target.value)}
+                  required
+                  style={{ color: categoryId ? 'inherit' : '#9ca3af' }} // Grey text for placeholder
+                >
+                  <option value="" disabled>Select Category</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id} style={{color: '#1f2937'}}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
+            </div>
+
+            {/* --- Dynamic Attributes Section --- */}
+            <div style={{ marginBottom: "1.5rem", padding: "15px", background: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
+               <div className="label-row">
+                 <label style={{marginBottom: 0, fontWeight: 600, color: "#334155"}}>Item Specifics</label>
+                 <button 
+                   type="button" 
+                   onClick={handleGenerateAttributes} 
+                   disabled={isGenAttributes}
+                   className="ai-gen-btn"
+                 >
+                   {isGenAttributes ? "Detecting..." : "✨ Auto-Detect Fields"}
+                 </button>
+               </div>
+               
+               {attributeFields.length === 0 && (
+                 <p style={{fontSize: "0.8rem", color: "#64748b", fontStyle: "italic", marginTop: "5px", marginBottom: 0}}>
+                   Select a category and click Auto-Detect to find relevant fields.
+                 </p>
+               )}
+
+               {attributeFields.length > 0 && (
+                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginTop: "15px" }}>
+                   {attributeFields.map((field) => (
+                     <div key={field}>
+                       <label style={{fontSize: "0.75rem", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "4px"}}>{field}</label>
+                       <input 
+                         type="text" 
+                         placeholder={`Value for ${field}`}
+                         value={attributeValues[field] || ""}
+                         onChange={(e) => handleAttributeChange(field, e.target.value)}
+                         style={{ padding: "8px", fontSize: "0.9rem", marginTop: 0 }}
+                       />
+                     </div>
+                   ))}
+                 </div>
+               )}
+            </div>
+
+            <div className="form-group">
               <div className="label-row">
                 <label>Description</label>
                 <button 
@@ -173,9 +287,8 @@ export default function AddItems() {
               />
             </div>
 
-            {/* UPDATED ROW: Price + Category */}
-            <div className="form-row">
-              <div className="form-group">
+            {/* Price Row */}
+            <div className="form-group">
                 <label>Start Price ($)</label>
                 <input 
                   type="number" 
@@ -184,26 +297,9 @@ export default function AddItems() {
                   onChange={(e) => setStartPrice(e.target.value)} 
                   required 
                 />
-              </div>
-              
-              <div className="form-group">
-                <label>Category</label>
-                <select 
-                  value={categoryId} 
-                  onChange={(e) => setCategoryId(e.target.value)}
-                  required
-                >
-                  <option value="" disabled>Select Category</option>
-                  {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
             </div>
 
-            {/* NEW ROW: Condition + Start Time */}
+            {/* Condition + Start Time */}
             <div className="form-row">
                <div className="form-group">
                   <label>Condition</label>

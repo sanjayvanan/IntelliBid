@@ -7,7 +7,7 @@ const {
   extractKeyFromUrl,
   generatePresignedUrl,
 } = require("../utils/s3Utils");
-const { embedText } = require("./aiService");
+const { embedText, generateAttributeSchema } = require("./aiService");
 
 const BUCKET = process.env.BUCKET_NAME;
 const REGION = process.env.BUCKET_REGION;
@@ -107,6 +107,7 @@ const createItem = async (item) => {
     category_id,
     seller_id,
     processedImages,
+    dynamic_details
   } = item;
 
   const values = [
@@ -118,14 +119,15 @@ const createItem = async (item) => {
     end_time,
     category_id,
     seller_id,
+    dynamic_details || {}
   ];
 
   const insertQuery = `
     INSERT INTO items (
       name, description, start_price, current_price,
-      start_time, end_time, category_id, seller_id, status
+      start_time, end_time, category_id, seller_id, status, dynamic_details
     )
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'active')
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'active', $9)
     RETURNING id
   `;
 
@@ -440,6 +442,95 @@ const processBidTransaction = async (
 
 
 
+
+
+
+// --- Helper: Calculate String Similarity (Levenshtein Distance) --- for getSuggestedAttributes
+const getSimilarityScore = (str1, str2) => {
+  const s1 = str1.toLowerCase();
+  const s2 = str2.toLowerCase();
+  const track = Array(s2.length + 1).fill(null).map(() =>
+    Array(s1.length + 1).fill(null));
+
+  for (let i = 0; i <= s1.length; i += 1) { track[0][i] = i; }
+  for (let j = 0; j <= s2.length; j += 1) { track[j][0] = j; }
+
+  for (let j = 1; j <= s2.length; j += 1) {
+    for (let i = 1; i <= s1.length; i += 1) {
+      const indicator = s1[i - 1] === s2[j - 1] ? 0 : 1;
+      track[j][i] = Math.min(
+        track[j][i - 1] + 1,
+        track[j - 1][i] + 1,
+        track[j - 1][i - 1] + indicator
+      );
+    }
+  }
+  const distance = track[s2.length][s1.length];
+  const maxLength = Math.max(s1.length, s2.length);
+  return (1 - distance / maxLength); // Returns 0.0 to 1.0
+};
+
+
+
+
+
+/**
+ * Smart Attribute Suggestion
+ * 1. Checks DB for similar items (Vector Search)
+ * 2. If found, reuses their dynamic_details schema (keys)
+ * 3. If not, asks AI to generate new keys
+ */
+const getSuggestedAttributes = async (name, categoryName, categoryId) => {
+  try {
+    const embedding = await embedText(name);
+    const vectorLiteral = toPgVectorLiteral(embedding);
+
+    console.log(`[Smart Attributes] Input: "${name}" | CatID: ${categoryId}`);
+
+    // Query: Nearest neighbor IN THE SAME CATEGORY
+    const query = `
+      SELECT name, dynamic_details, description_embedding <-> $1 as distance
+      FROM items 
+      WHERE dynamic_details IS NOT NULL 
+        AND dynamic_details::text != '{}'
+        AND category_id = $2
+      ORDER BY description_embedding <-> $1 ASC
+      LIMIT 1
+    `;
+
+    const { rows } = await db.query(query, [vectorLiteral, categoryId]);
+
+    if (rows.length > 0) {
+      const candidate = rows[0];
+      const nameSimilarity = getSimilarityScore(name, candidate.name);
+      
+      console.log(`[Smart Attributes] Neighbor found: "${candidate.name}"`);
+      console.log(`[Smart Attributes] Dist: ${candidate.distance.toFixed(3)} | NameSim: ${nameSimilarity.toFixed(3)}`);
+
+      // 40% Name Similarity Check
+      if (nameSimilarity > 0.4) {
+         console.log(`[Smart Attributes] Match found! Reusing DB schema.`);
+         return Object.keys(candidate.dynamic_details);
+      } else {
+         console.log(`[Smart Attributes] Match rejected (Names too different).`);
+      }
+    } else {
+      console.log(`[Smart Attributes] No existing items found in Category ${categoryId}.`);
+    }
+
+    // Fallback
+    console.log(`[Smart Attributes] Asking AI for "${name}" schema.`);
+    return await generateAttributeSchema(name, categoryName);
+
+  } catch (error) {
+    console.error("Smart Attribute Error:", error);
+    return await generateAttributeSchema(name, categoryName);
+  }
+};
+
+
+
+
 module.exports = {
   getItemsBySeller,
   getItemById,
@@ -453,5 +544,6 @@ module.exports = {
   getSimilarSoldItems,
   getAllCategories,
   getLastBid,
-  processBidTransaction 
+  processBidTransaction,
+  getSuggestedAttributes,
 };

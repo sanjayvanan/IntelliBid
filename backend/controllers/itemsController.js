@@ -9,13 +9,15 @@ const { getRecommendationsForItem} = require("../services/recommendationService"
 // ----------------------
 const generateDescription = async (req, res) => {
   try {
-    const { name, category } = req.body;
+    // Extract attributes from the request
+    const { name, category, attributes } = req.body;
 
     if (!name) {  
       return res.status(400).json({ error: "Item name is required" });
     }
 
-    const description = await generateItemDescription(name, category);
+    // Pass them to the service
+    const description = await generateItemDescription(name, category, attributes);
     res.json({ description });
   } catch (error) {
     console.error("AI Generation Error:", error);
@@ -119,10 +121,22 @@ const getItems = async (req, res) => {
 // ----------------------
 const createItem = async (req, res) => {
   try {
+    let dynamic_details = req.body.dynamic_details;
+    
+    // Since we send FormData, objects often come as JSON strings
+    if (typeof dynamic_details === 'string') {
+        try {
+            dynamic_details = JSON.parse(dynamic_details);
+        } catch (e) {
+            dynamic_details = {};
+        }
+    }
+
     const itemData = {
       ...req.body,
       seller_id: req.user._id.toString(),
-      processedImages: req.processedImages, 
+      processedImages: req.processedImages,
+      dynamic_details: dynamic_details 
     };
 
     const newItem = await itemService.createItem(itemData);
@@ -349,6 +363,24 @@ const getCategories = async (req, res) => {
   }
 };
 
+
+const generateAttributes = async (req, res) => {
+  try {
+    // 1. Extract categoryId here
+    const { name, category, categoryId } = req.body; 
+    
+    if (!name) return res.status(400).json({ error: "Item name is required" });
+
+    // 2. Pass categoryId as the 3rd argument
+    const fields = await itemService.getSuggestedAttributes(name, category, categoryId);
+    
+    res.json(fields);
+  } catch (error) {
+    console.error("Attribute Generation Error:", error);
+    res.status(500).json({ error: "Failed to generate attributes" });
+  }
+};
+
 module.exports = {
   getMyItems,
   getItem,
@@ -359,5 +391,6 @@ module.exports = {
   getRecommendations,
   getWonItems,
   analyzeListing,
-  getCategories
+  getCategories,
+  generateAttributes,
 };

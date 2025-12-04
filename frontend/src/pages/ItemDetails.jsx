@@ -19,10 +19,9 @@ const ItemDetails = () => {
   const [item, setItem] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-   // State to toggle main image if user clicks a thumbnail
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
-  // Function to reload item data after placing a bid
+  // Function to refresh item data (e.g., after a bid)
   const refreshItem = async () => {
     try {
       const res = await axios.get(`${API_URL}/api/items/${id}`, {
@@ -37,12 +36,13 @@ const ItemDetails = () => {
     }
   };
 
-   // Fetch Recommendations using the hook
+  // Fetch Recommendations
   const { 
     data: recommendations, 
     isPending: recLoading 
   } = useFetch(`${API_URL}/api/items/recommend/${id}`);
 
+  // Initial Fetch
   useEffect(() => {
     (async () => {
       try {
@@ -61,7 +61,7 @@ const ItemDetails = () => {
     })();
   }, [id, token]);
 
-   // Websocket Listener
+  // Real-time updates via Socket.io
   useEffect(() => {
     const socket = io(API_URL);
 
@@ -99,13 +99,11 @@ const ItemDetails = () => {
     status,
     category_id,
     category_name,
-    seller_id
+    seller_id,
+    dynamic_details // <--- Extract dynamic attributes from DB
   } = item;
-  // Check ownership
-  // Note: user.id comes from the updated backend login response that i added
+  
   const isOwner = user?.id === seller_id;
-
-  // --- Check if auction has started ---
   const hasStarted = new Date() >= new Date(start_time);
 
   const images = Array.isArray(image_url) ? image_url : [image_url].filter(Boolean);
@@ -121,6 +119,7 @@ const ItemDetails = () => {
     <main className="item-page">
       <div className="container">
         <div className="item-grid">
+          {/* LEFT: Image Gallery */}
           <figure className="item-media">
             <div style={{ 
               width: "100%", 
@@ -168,6 +167,7 @@ const ItemDetails = () => {
             )}
           </figure>
 
+          {/* RIGHT: Info & Bidding */}
           <section className="item-info">
             <h1 className="item-title">{name}</h1>
             <p className="item-desc">{description}</p>
@@ -176,7 +176,9 @@ const ItemDetails = () => {
               Auction <CountDownTimer startTime={start_time} endTime={end_time} />
             </p>
 
+            {/* SPECS GRID */}
             <div className="meta-grid">
+              {/* Standard Fields */}
               <div>
                 <span className="label">Start Price</span>
                 <span className="value">${start_price}</span>
@@ -205,14 +207,23 @@ const ItemDetails = () => {
               </div>
               <div>
                 <span className="label">Category</span>
-                <span className="value">{category_name||category_id}</span>
+                <span className="value">{category_name || category_id}</span>
               </div>
+
+              {/* --- NEW: RENDER DYNAMIC ATTRIBUTES --- */}
+              {dynamic_details && Object.keys(dynamic_details).length > 0 && 
+                Object.entries(dynamic_details).map(([key, value]) => (
+                  <div key={key}>
+                    <span className="label">{key}</span>
+                    <span className="value">{value}</span>
+                  </div>
+              ))}
             </div>
           </section>
         </div>
       </div>
 
-      {/* --- UPDATED CONDITIONAL RENDERING FOR BIDDING FORM --- */}
+      {/* --- BIDDING LOGIC --- */}
       {status !== "ended" ? (
         !hasStarted ? (
           <div style={{ 
@@ -271,6 +282,7 @@ const ItemDetails = () => {
         </div>
       )}
 
+      {/* Recommendations */}
       <RecommendationList 
          recommendations={recommendations} 
          loading={recLoading} 
