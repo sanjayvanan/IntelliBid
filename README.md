@@ -6,14 +6,18 @@ IntelliBid is a modern, AI-powered auction platform that enables real-time biddi
 
 ### **1️⃣ Core Auction Functionality**
 - **Real-Time Bidding**: Live bid updates using WebSockets (Socket.io), ensuring instant feedback for all participants.
-- **Automated Auction Management**: A dedicated background process autonomously manages the auction lifecycle, monitoring expired listings, updating their status from 'active' to 'ended', and triggering automated email notifications to winners using Nodemailer.
+- **Proxy Bidding System**: Users set their maximum bid, and the system automatically bids the minimum amount needed to maintain their lead, up to their limit.
+- **Automated Auction Management**: A dedicated background process autonomously manages the auction lifecycle, monitoring expired listings, updating their status from 'active' to 'ended', and triggering automated email notifications to winners.
+- **Edit Restrictions**: Sellers can edit listings to correct errors, but the system locks the listing as soon as the first bid is placed to ensure fairness.
 
 ---
 
 ### **2️⃣ AI-Powered Intelligence**
-- **AI Description Generator**: Auto-generate professional item descriptions using Google Gemini AI.
-- **RAG-Based Market Appraiser**: Uses Retrieval-Augmented Generation (RAG) for data-driven pricing insights. Draft listings are embedded using `text-embedding-004`, matched against similar **sold** items via vector search, and evaluated by Gemini to estimate value and analyze pricing strategy.
-- **AI Smart & Vector-Based Recommendations**: Uses AI-generated vector embeddings to represent item descriptions in a high-dimensional vector space and applies L2 (Euclidean) distance to retrieve and recommend semantically similar active auctions.
+- **🤖 IntelliBid Assistant (Chatbot)**: A file-based RAG (Retrieval-Augmented Generation) chatbot that answers user questions about platform policies, fees, and features. It reads from a dynamic knowledge base (`policies.md`) to provide accurate, context-aware support.
+- **✨ Smart Attribute Auto-Detection**: Uses Vector Search to find similar items in the database and reuse their specification fields (e.g., "Battery Health" for phones). If no match is found, it uses Gemini AI to generate a custom schema of relevant attributes for that specific product.
+- **📝 AI Description Generator**: Auto-generate professional item descriptions using Google Gemini AI based on the item name and category.
+- **🔍 RAG-Based Market Appraiser**: Analyzes draft listings against real sold item history. It retrieves similar sold items via vector search and uses Gemini to estimate the value and provide a "Deal Score."
+- **💡 Vector-Based Recommendations**: Uses AI-generated vector embeddings to represent items in high-dimensional space, applying L2 (Euclidean) distance to recommend semantically similar active auctions.
 
 ---
 
@@ -26,7 +30,7 @@ IntelliBid is a modern, AI-powered auction platform that enables real-time biddi
 ### **4️⃣ Data & Storage Architecture**
 - **Hybrid Database Architecture**:
   - **MongoDB**: Manages user authentication and profiles.
-  - **PostgreSQL**: Stores transactional data like items, bids, and vector embeddings.
+  - **PostgreSQL**: Stores transactional data like items, bids, and vector embeddings (`pgvector`).
 
 ---
 
@@ -44,16 +48,17 @@ IntelliBid is a modern, AI-powered auction platform that enables real-time biddi
 - **Library**: React (Vite)
 - **State Management**: Redux Toolkit
 - **Routing**: React Router DOM
-- **Styling**: CSS Modules / Custom CSS
+- **Markdown Rendering**: `react-markdown` (for Chatbot responses)
 - **Real-Time**: Socket.io Client
+- **Styling**: CSS Modules / Custom CSS
 
 ### Backend
 - **Runtime**: Node.js
 - **Framework**: Express.js
 - **Databases**:
   - MongoDB (Mongoose)
-  - PostgreSQL (pg) with pgvector extension
-- **AI & ML**: Google Generative AI (Gemini)
+  - PostgreSQL (pg) with `pgvector` extension
+- **AI & ML**: Google Generative AI (Gemini 1.5 Flash & Text Embedding 004)
 - **Storage**: AWS S3
 - **Email**: Nodemailer
 - **Scheduling**: Node-cron
@@ -63,7 +68,7 @@ IntelliBid is a modern, AI-powered auction platform that enables real-time biddi
 Before running the application, ensure you have the following installed:
 
 - Node.js (v16 or higher)
-- PostgreSQL (with pgvector extension enabled)
+- PostgreSQL (with `pgvector` extension enabled)
 - MongoDB (Local or Atlas)
 - An AWS Account (S3 Bucket)
 - Google Gemini API Key
@@ -72,7 +77,7 @@ Before running the application, ensure you have the following installed:
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/yourusername/intellibid.git
+git clone [https://github.com/yourusername/intellibid.git](https://github.com/yourusername/intellibid.git)
 cd intellibid
 ```
 
