@@ -9,6 +9,7 @@ import Navbar from './components/Navbar'
 import AddItems from './pages/AddItems'
 import ItemDetails from './pages/ItemDetails'
 import Profile from './pages/Profile'
+import ChatBot from './components/ChatBot'
 
 
 function App() {
@@ -51,6 +52,7 @@ function App() {
           </Routes>
           
         </div>
+        {user && <ChatBot />}
       </BrowserRouter>
     </div>
   );

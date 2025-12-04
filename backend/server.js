@@ -9,6 +9,7 @@ const rateLimit = require("express-rate-limit");
 const userRoutes = require("./routes/user");
 const itemRoutes = require("./routes/items");
 const paymentRoutes = require("./routes/payment");
+const chatRoutes = require("./routes/chat");
 const connectMongo = require("./db/mongo");
 // Start background jobs
 require('./jobs/auctionCloser'); 
@@ -45,6 +46,7 @@ app.use("/api/payment", paymentRoutes);
 app.use((req, _res, next) => { console.log(req.method, req.path); next(); });
 
 app.use("/api/user", userRoutes);
+app.use("/api/chat", chatRoutes);
 
 //Log when users connect to the socket
 io.on("connection", (socket) => {

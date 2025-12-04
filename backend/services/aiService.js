@@ -1,3 +1,6 @@
+const fs = require("fs").promises;
+const path = require("path");
+
 // services/aiService.js
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
@@ -19,6 +22,7 @@ const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 const embeddingModel = genAI.getGenerativeModel({
   model: "text-embedding-004",
 });
+
 
 /**
  * Generate a short auction description for an item.
@@ -197,10 +201,77 @@ const generateAttributeSchema = async (name, category) => {
   }
 };
 
+
+///chatbot
+// backend/services/aiService.js
+
+const loadSystemContextAsync = async () => {
+  try {
+    const filePath = path.join(__dirname, "../data/policies.md");
+    
+    // Check if file exists (async)
+    try {
+      await fs.access(filePath);
+    } catch {
+      console.error("[System Context] File NOT found at:", filePath);
+      return "You are a helpful assistant for the IntelliBid auction platform.";
+    }
+
+    // Read file without blocking 
+    const content = await fs.readFile(filePath, "utf-8");
+    return content;
+  } catch (err) {
+    console.error("Error reading policy file:", err);
+    return "";
+  }
+};
+
+/**
+ * Chat with the IntelliBid Assistant.
+ * Uses a system prompt to ground the AI in the context of your application.
+ */
+const chatWithAssistant = async (userMessage) => {
+  // 1. Await the non-blocking file read
+  const policyContext = await loadSystemContextAsync();
+
+  const systemPrompt = `
+    You are the expert support bot for IntelliBid.
+    Use the following KNOWLEDGE BASE to answer user questions accurately.
+    
+    --- KNOWLEDGE BASE START ---
+    ${policyContext}
+    --- KNOWLEDGE BASE END ---
+
+    GUIDELINES:
+    - If the user asks about something NOT in the knowledge base, politely say you don't know but can help with platform features.
+    - Be concise and friendly.
+    - If they ask about fees, shipping, or rules, cite the policy.
+    - Use Markdown for formatting.
+  `;
+
+  const prompt = `
+    ${systemPrompt}
+
+    USER QUESTION: "${userMessage}"
+    
+    YOUR ANSWER:
+  `;
+
+  try {
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    return response.text();
+  } catch (error) {
+    console.error("Chat Error:", error);
+    return "I'm having trouble connecting to my brain right now. Please try again later.";
+  }
+};
+
 module.exports = {
   generateItemDescription,
   chooseRecommendedIds,
   embedText,
   generateListingAnalysis,
-  generateAttributeSchema
+  generateAttributeSchema,
+  chatWithAssistant,
 };
