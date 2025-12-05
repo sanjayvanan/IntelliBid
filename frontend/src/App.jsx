@@ -7,6 +7,7 @@ import Login from './pages/Login'
 import Signup from './pages/Signup'
 import Navbar from './components/Navbar'
 import AddItems from './pages/AddItems'
+import EditItem from './pages/EditItem';
 import ItemDetails from './pages/ItemDetails'
 import Profile from './pages/Profile'
 import ChatBot from './components/ChatBot'
@@ -39,6 +40,7 @@ function App() {
               path="/add-item" 
               element={<AddItems /> } 
             />
+            <Route path="/edit-item/:id" element={user ? <EditItem /> : <Navigate to="/login" />} />
             <Route 
               path="/item-details/:id" 
               element={<ItemDetails /> } 

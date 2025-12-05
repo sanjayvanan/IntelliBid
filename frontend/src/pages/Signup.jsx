@@ -17,6 +17,7 @@ const Signup = () => {
 
   return (
     <form className="signup" onSubmit={handleSubmit}>
+      <p style={{color: "red"}}>If you’ve just arrived, please wait about 35 seconds for the backend to boot up.</p>
       <h3>Sign Up</h3>
       
       <label>Email address:</label>

@@ -381,6 +381,32 @@ const generateAttributes = async (req, res) => {
   }
 };
 
+
+const editItem = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user._id.toString();
+    const updates = req.body; // Contains name, description, etc.
+
+    const updatedItem = await itemService.editItem(id, userId, updates);
+    res.json(updatedItem);
+
+  } catch (error) {
+    console.error("Edit Item Error:", error);
+    
+    // Return specific error for the "Locked" scenario
+    if (error.message.includes("Bids have already been placed")) {
+      return res.status(403).json({ error: error.message });
+    }
+    
+    if (error.message.includes("authorized")) {
+      return res.status(403).json({ error: error.message });
+    }
+
+    res.status(500).json({ error: "Failed to edit item" });
+  }
+};
+
 module.exports = {
   getMyItems,
   getItem,
@@ -393,4 +419,5 @@ module.exports = {
   analyzeListing,
   getCategories,
   generateAttributes,
+  editItem
 };

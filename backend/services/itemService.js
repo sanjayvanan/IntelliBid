@@ -530,6 +530,73 @@ const getSuggestedAttributes = async (name, categoryName, categoryId) => {
 
 
 
+//edit the item
+const editItem = async (itemId, userId, updates) => {
+  // 1. Check if item exists and belongs to user
+  const { rows: items } = await db.query(`SELECT * FROM items WHERE id = $1`, [itemId]);
+  if (items.length === 0) throw new Error("Item not found");
+  
+  const item = items[0];
+  if (item.seller_id !== userId) {
+    throw new Error("You are not authorized to edit this item");
+  }
+
+  // 2. CRITICAL: Check for existing bids
+  const { rows: bids } = await db.query(`SELECT 1 FROM bids WHERE item_id = $1 LIMIT 1`, [itemId]);
+  
+  if (bids.length > 0) {
+    throw new Error("Cannot edit listing: Bids have already been placed. The listing is locked to ensure fairness.");
+  }
+
+  // 3. GENERATE NEW VECTOR (If name/description changed)
+  let vectorLiteral = null;
+  
+  // Check if we need to update the embedding
+  if (updates.name || updates.description) {
+      try {
+          // Use new values if provided, otherwise fallback to existing DB values
+          const finalName = updates.name || item.name;
+          const finalDesc = updates.description || item.description;
+          
+          const textToEmbed = [finalName, finalDesc].filter(Boolean).join(". ");
+          
+          if (textToEmbed) {
+              const embedding = await embedText(textToEmbed);
+              vectorLiteral = toPgVectorLiteral(embedding);
+          }
+      } catch (err) {
+          console.error("Failed to update embedding during edit:", err);
+          // We continue the update even if AI fails, to not block the user
+      }
+  }
+
+  // 4. Perform Update
+  const { name, description, dynamic_details, category_id } = updates;
+  
+  const updateQuery = `
+    UPDATE items 
+    SET 
+      name = COALESCE($1, name),
+      description = COALESCE($2, description),
+      dynamic_details = COALESCE($3, dynamic_details),
+      category_id = COALESCE($4, category_id),
+      description_embedding = COALESCE($6, description_embedding) -- Update vector if we have a new one
+    WHERE id = $5
+    RETURNING *
+  `;
+
+  const { rows: updated } = await db.query(updateQuery, [
+    name, 
+    description, 
+    dynamic_details, 
+    category_id,
+    itemId,
+    vectorLiteral
+  ]);
+
+  return updated[0];
+};
+
 
 module.exports = {
   getItemsBySeller,
@@ -546,4 +613,5 @@ module.exports = {
   getLastBid,
   processBidTransaction,
   getSuggestedAttributes,
+  editItem,
 };

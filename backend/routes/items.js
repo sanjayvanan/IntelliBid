@@ -14,7 +14,8 @@ const {
   getWonItems,
   analyzeListing,
   getCategories,
-  generateAttributes  
+  generateAttributes  ,
+  editItem
 } = require("../controllers/itemsController");
 
 // Allow only 10 AI requests every 30 minutes per IP
@@ -37,6 +38,7 @@ router.post("/generate-attributes", requireAuth, aiLimiter, generateAttributes);
 router.post("/analyze", requireAuth, aiLimiter, analyzeListing);
 router.get("/recommend/:id", requireAuth, getRecommendations);
 router.get("/:id", getItem);
+router.put("/:id", requireAuth, editItem);
 router.patch("/bidup/:id", requireAuth, updateItem);
 // for S3 we need this middleware
 // Allow up to 5 images

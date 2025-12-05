@@ -1,4 +1,4 @@
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import API_URL from "../config/api";
@@ -11,7 +11,8 @@ import RecommendationList from "../components/RecommendationList";
 import useFetch from "../hooks/useFetch";
 
 const ItemDetails = () => {
-
+  const navigate = useNavigate();
+  
   const user = useSelector((state) => state.auth.user);
   const token = user?.token;
 
@@ -210,7 +211,7 @@ const ItemDetails = () => {
                 <span className="value">{category_name || category_id}</span>
               </div>
 
-              {/* --- NEW: RENDER DYNAMIC ATTRIBUTES --- */}
+              {/* --- RENDER DYNAMIC ATTRIBUTES --- */}
               {dynamic_details && Object.keys(dynamic_details).length > 0 && 
                 Object.entries(dynamic_details).map(([key, value]) => (
                   <div key={key}>
@@ -223,7 +224,7 @@ const ItemDetails = () => {
         </div>
       </div>
 
-      {/* --- BIDDING LOGIC --- */}
+      {/* --- BIDDING & EDIT LOGIC --- */}
       {status !== "ended" ? (
         !hasStarted ? (
           <div style={{ 
@@ -242,6 +243,25 @@ const ItemDetails = () => {
             <p style={{ margin: '5px 0 0 0', fontSize: '0.9em' }}>
               Bidding opens at {formatDate(start_time)}
             </p>
+
+            {/* EDIT BUTTON (For Owner - Not Started) */}
+            {isOwner && (
+              <button 
+                onClick={() => navigate(`/edit-item/${id}`)}
+                style={{
+                  marginTop: "12px", 
+                  padding: "8px 16px", 
+                  background: "#3b82f6", 
+                  color: "white", 
+                  border: "none", 
+                  borderRadius: "6px", 
+                  cursor: "pointer", 
+                  fontWeight: "500"
+                }}
+              >
+                Edit Listing
+              </button>
+            )}
           </div>
         ) : !isOwner ? (
           <BiddingForm
@@ -263,6 +283,27 @@ const ItemDetails = () => {
             border: '1px solid #ffeeba'
           }}>
             <strong>You are the seller of this item.</strong>
+
+            {/* EDIT BUTTON (For Owner - Active Auction) */}
+            <div style={{marginTop: "10px"}}>
+                <button 
+                  onClick={() => navigate(`/edit-item/${id}`)}
+                  style={{
+                    backgroundColor: "#3b82f6", 
+                    color: "white", 
+                    padding: "8px 16px", 
+                    border: "none", 
+                    borderRadius: "6px", 
+                    cursor: "pointer", 
+                    fontWeight: "500"
+                  }}
+                >
+                  Edit Listing Details
+                </button>
+                <p style={{fontSize: "0.8rem", color: "#666", marginTop: "6px", marginBottom: "0"}}>
+                    (Only allowed if no bids have been placed)
+                </p>
+            </div>
           </div>
         )
       ) : (
