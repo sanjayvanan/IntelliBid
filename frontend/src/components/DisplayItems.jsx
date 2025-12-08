@@ -1,20 +1,20 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchItems, resetItems } from '../features/itemsSlice';
+import { fetchItems, resetItems, updateRealTimePrice } from '../features/itemsSlice'; // Import updateRealTimePrice
 import { Link } from 'react-router-dom';
 import "../styles/DisplayItems.css"
 import CountDownTimer from './CountDownTimer';
 import { useInView } from 'react-intersection-observer';
+import socket from '../socket'; // Import the socket connection
 
 const DisplayItems = () => {
   const dispatch = useDispatch();
-  // Get error state from store
   const { items, loading, hasMore, error } = useSelector((state) => state.items);
   const [page, setPage] = useState(1);
 
   const { ref, inView } = useInView({
     threshold: 0,
-    rootMargin: '100px', // Load slightly before reaching bottom
+    rootMargin: '100px', 
   });
 
   // Initial Load
@@ -26,14 +26,37 @@ const DisplayItems = () => {
 
   // Infinite Scroll Logic
   useEffect(() => {
-    // CRITICAL FIX: Added !error check. 
-    // If there is an error (like 429), do NOT try to fetch the next page.
     if (inView && hasMore && !loading && !error) {
       const nextPage = page + 1;
       dispatch(fetchItems({ page: nextPage }));
       setPage(nextPage);
     }
   }, [inView, hasMore, loading, page, dispatch, error]);
+
+  // 🔥 REAL-TIME SOCKET LISTENER
+  useEffect(() => {
+    // Check if socket is connected (optional debugging)
+    socket.on("connect", () => {
+      console.log("🟢 Socket connected for live updates");
+    });
+
+    // Listen for new bids
+    socket.on("bid_placed", (data) => {
+      console.log("⚡ Live Update:", data);
+      
+      // Dispatch action to update Redux store immediately
+      dispatch(updateRealTimePrice({ 
+        itemId: data.itemId, 
+        current_price: data.current_price 
+      }));
+    });
+
+    // Cleanup listener when component unmounts
+    return () => {
+      socket.off("bid_placed");
+      socket.off("connect");
+    };
+  }, [dispatch]);
 
   return (
     <div className="display-items">
@@ -87,15 +110,12 @@ const DisplayItems = () => {
         })}
       </div>
 
-      {/* Error Message Display */}
       {error && (
         <div style={{ textAlign: 'center', padding: '20px', color: '#e7195a', fontWeight: 'bold' }}>
           {error}. Please refresh the page to try again.
         </div>
       )}
 
-      {/* Infinite Scroll Sensor */}
-      {/* Only show loader if we have more AND no error */}
       {hasMore && !error && (
         <div ref={ref} className="scroll-trigger">
           {loading ? (

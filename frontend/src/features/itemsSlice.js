@@ -12,9 +12,7 @@ export const fetchItems = createAsyncThunk(
 
       const response = await fetch(url);
       
-      // CRITICAL FIX: Handle non-200 responses (like 429 or 500)
       if (!response.ok) {
-        // Try to parse error message, fallback to status text
         const errorData = await response.json().catch(() => ({}));
         return rejectWithValue(errorData.error || `Request failed: ${response.status}`);
       }
@@ -42,6 +40,14 @@ const itemsSlice = createSlice({
       state.hasMore = true;
       state.error = null;
       state.currentSearchTerm = '';
+    },
+    // Updates price instantly when socket event fires
+    updateRealTimePrice: (state, action) => {
+      const { itemId, current_price } = action.payload;
+      const item = state.items.find((i) => i.id === itemId);
+      if (item) {
+        item.current_price = current_price;
+      }
     }
   },
   extraReducers: (builder) => {
@@ -56,7 +62,6 @@ const itemsSlice = createSlice({
 
         state.currentSearchTerm = search;
 
-        // If it's the first page, replace items. Otherwise append.
         if (page === 1) {
           state.items = items;
         } else {
@@ -67,7 +72,6 @@ const itemsSlice = createSlice({
           state.items = [...state.items, ...newItems];
         }
 
-        // STOP CONDITION: If we got fewer items than the limit, we reached the end.
         if (items.length < limit) {
           state.hasMore = false;
         } else {
@@ -77,11 +81,10 @@ const itemsSlice = createSlice({
       .addCase(fetchItems.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
-        // CRITICAL FIX: Stop infinite scrolling on error to prevent loops
         state.hasMore = false; 
       });
   },
 });
 
-export const { resetItems } = itemsSlice.actions;
+export const { resetItems, updateRealTimePrice } = itemsSlice.actions;
 export default itemsSlice.reducer;
