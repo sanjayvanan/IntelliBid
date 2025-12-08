@@ -4,6 +4,11 @@ const itemService = require("../services/itemService");
 const { generateItemDescription, embedText, generateListingAnalysis } = require("../services/aiService");
 const { getRecommendationsForItem} = require("../services/recommendationService");
 
+const redis = require("../db/redis");
+
+const DEFAULT_TTL = 3600; // 1 hour cache
+const FEED_TTL = 60;      // 60 seconds for the main feed
+
 // ----------------------
 // Generate description
 // ----------------------
@@ -73,16 +78,29 @@ const getMyItems = async (req, res) => {
 };
 
 // ----------------------
-// Get a single item
+// Get a single item (With Caching)
 // ----------------------
 const getItem = async (req, res) => {
   try {
     const { id } = req.params;
+    const cacheKey = `item:${id}`;
+
+    // 1. Try to fetch from Redis
+    const cachedItem = await redis.get(cacheKey);
+    if (cachedItem) {
+      console.log(`⚡ Cache hit for item ${id}`); 
+      return res.json(JSON.parse(cachedItem));
+    }
+
+    // 2. If not in cache, fetch from DB
     const item = await itemService.getItemById(id);
 
     if (!item) {
       return res.status(404).json({ error: "Item not found" });
     }
+
+    // 3. Save to Redis
+    await redis.setEx(cacheKey, DEFAULT_TTL, JSON.stringify(item));
 
     res.json(item);
   } catch (error) {
@@ -91,24 +109,40 @@ const getItem = async (req, res) => {
   }
 };
 
+
 // ----------------------
-// Get all active items
+// Get all active items (With Caching)
 // ----------------------
 const getItems = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 4; // Default limit 4 (or 12, whatever you set)
-    const searchQuery = req.query.search;
+    const limit = parseInt(req.query.limit) || 12; 
+    const searchQuery = req.query.search || "";
 
+    // Unique key for this specific page/search combo
+    const cacheKey = `items:feed:${page}:${limit}:${searchQuery.trim().toLowerCase()}`;
+
+    // 1. Try Cache
+    const cachedFeed = await redis.get(cacheKey);
+    if (cachedFeed) {
+      // ✅ ADDED THIS LOG so you can see it working!
+      console.log(`⚡ Cache hit for feed: ${cacheKey}`); 
+      return res.json(JSON.parse(cachedFeed));
+    }
+
+   // fetched from DB
+    console.log(`❌ Cache miss for feed: ${cacheKey}`); 
+
+    // 2. Fetch from Service
     let items;
-
     if (searchQuery && searchQuery.trim().length > 0) {
-      console.log(`Performing AI Search for: "${searchQuery}", Page: ${page}`);
-      // PASS PAGE AND LIMIT HERE
       items = await itemService.searchItems(searchQuery, page, limit);
     } else {
       items = await itemService.getAllActiveItems(page, limit);
     }
+
+    // 3. Save to Redis (Short TTL for feeds)
+    await redis.setEx(cacheKey, FEED_TTL, JSON.stringify(items));
 
     res.json(items);
   } catch (error) {
@@ -116,6 +150,7 @@ const getItems = async (req, res) => {
     res.status(400).json({ error: error.message });
   }
 };
+
 // ----------------------
 // Create a new item
 // ----------------------
@@ -148,9 +183,11 @@ const createItem = async (req, res) => {
 };
 
 // ----------------------
-// Update bid
+// Update bid (With Cache Invalidation)
 // ----------------------
 // Handles placing or updating a bid on an item (with proxy bidding support)
+// ----------------------
+
 const updateItem = async (req, res) => {
   const BID_INCREMENT = 1.00; // Smallest amount needed to outbid someone
 
@@ -274,6 +311,17 @@ const updateItem = async (req, res) => {
       bidsToRecord
     );
 
+    // ============================================
+    // 🔥 REDIS: INVALIDATE CACHE
+    // ============================================
+    // Delete the specific item cache so the next fetch gets the new price
+    try {
+      await redis.del(`item:${itemId}`);
+    } catch (redisErr) {
+      console.error("Redis Error:", redisErr);
+      // We continue even if Redis fails, so the bid isn't blocked
+    }
+
     // --- Notify real-time subscribers ---
     const io = req.app.get("io");
     io.emit("bid_placed", {
@@ -386,20 +434,19 @@ const editItem = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user._id.toString();
-    const updates = req.body; // Contains name, description, etc.
+    const updates = req.body;
 
     const updatedItem = await itemService.editItem(id, userId, updates);
+
+    // 🔥 INVALIDATE CACHE
+    await redis.del(`item:${id}`);
+
     res.json(updatedItem);
 
   } catch (error) {
     console.error("Edit Item Error:", error);
     
-    // Return specific error for the "Locked" scenario
-    if (error.message.includes("Bids have already been placed")) {
-      return res.status(403).json({ error: error.message });
-    }
-    
-    if (error.message.includes("authorized")) {
+    if (error.message.includes("Bids have already been placed") || error.message.includes("authorized")) {
       return res.status(403).json({ error: error.message });
     }
 

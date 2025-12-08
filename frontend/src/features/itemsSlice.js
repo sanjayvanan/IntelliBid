@@ -11,9 +11,15 @@ export const fetchItems = createAsyncThunk(
       }
 
       const response = await fetch(url);
-      const data = await response.json();
-      if (!response.ok) return rejectWithValue('Failed to fetch items');
       
+      // CRITICAL FIX: Handle non-200 responses (like 429 or 500)
+      if (!response.ok) {
+        // Try to parse error message, fallback to status text
+        const errorData = await response.json().catch(() => ({}));
+        return rejectWithValue(errorData.error || `Request failed: ${response.status}`);
+      }
+      
+      const data = await response.json();
       return { items: data, page, limit, search }; 
     } catch (err) {
       return rejectWithValue('Network error');
@@ -28,13 +34,14 @@ const itemsSlice = createSlice({
     loading: false,
     error: null,
     hasMore: true,
-    currentSearchTerm: '', // Store this!
+    currentSearchTerm: '',
   },
   reducers: {
     resetItems: (state) => {
       state.items = [];
       state.hasMore = true;
-      state.currentSearchTerm = ''; // Optional: reset search on manual clear
+      state.error = null;
+      state.currentSearchTerm = '';
     }
   },
   extraReducers: (builder) => {
@@ -47,25 +54,31 @@ const itemsSlice = createSlice({
         state.loading = false;
         const { items, page, limit, search } = action.payload;
 
-        // Update current search term
         state.currentSearchTerm = search;
 
+        // If it's the first page, replace items. Otherwise append.
         if (page === 1) {
           state.items = items;
         } else {
-          state.items = [...state.items, ...items];
+          // Filter out duplicates just in case
+          const newItems = items.filter(
+            newItem => !state.items.some(existingItem => existingItem.id === newItem.id)
+          );
+          state.items = [...state.items, ...newItems];
         }
 
+        // STOP CONDITION: If we got fewer items than the limit, we reached the end.
         if (items.length < limit) {
           state.hasMore = false;
         } else {
-           // Re-enable loading if we got a full page (mostly for edge case where user clears search)
            state.hasMore = true; 
         }
       })
       .addCase(fetchItems.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+        // CRITICAL FIX: Stop infinite scrolling on error to prevent loops
+        state.hasMore = false; 
       });
   },
 });

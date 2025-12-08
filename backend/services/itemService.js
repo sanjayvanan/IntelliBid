@@ -277,16 +277,14 @@ const getCandidateItems = async (category_id, excluded_id, limit = 20) => {
   return Promise.all(rows.map(attachPresignedUrl));
 };
 
-const getSimilarItemsByEmbedding = async (itemId, limit = 20) => {
-  const { rows: currentRows } = await db.query(
-    `SELECT id, category_id, description_embedding FROM items WHERE id = $1`,
-    [itemId]
-  );
+//  Now accepts the embedding string/array directly, not the itemId
+const getSimilarItemsByEmbedding = async (itemId, embeddingVector, limit = 20) => {
+  if (!embeddingVector) return []; // Safety check: if no vector, return empty immediately
 
-  if (!currentRows.length) throw new Error("Item not found");
-  const current = currentRows[0];
-
-  if (!current.description_embedding) throw new Error("Current item has no embedding");
+  // Ensure vector is formatted as a string for pgvector query
+  const vectorLiteral = Array.isArray(embeddingVector) 
+    ? toPgVectorLiteral(embeddingVector) 
+    : embeddingVector;
 
   const { rows } = await db.query(
     `
@@ -299,21 +297,36 @@ const getSimilarItemsByEmbedding = async (itemId, limit = 20) => {
     ORDER BY items.description_embedding <-> $2::vector
     LIMIT $3
     `,
-    [itemId, current.description_embedding, limit]
+    [itemId, vectorLiteral, limit]
   );
 
   return Promise.all(rows.map(attachPresignedUrl));
 };
 
 const getRecommendationBaseData = async (itemId, limit = 20) => {
+  // 1. Fetch the item once
   const currentItem = await getItemById(itemId);
   if (!currentItem) throw new Error("Item not found");
 
-  let candidates;
+  let candidates = [];
+
+  // 2. Try Vector Search first
   try {
-    candidates = await getSimilarItemsByEmbedding(itemId, limit);
+    if (currentItem.description_embedding) {
+      // Pass the embedding we already have! No need to fetch item again.
+      candidates = await getSimilarItemsByEmbedding(
+        itemId, 
+        currentItem.description_embedding, 
+        limit
+      );
+    }
   } catch (err) {
-    console.error("Vector fetch failed, falling back:", err);
+    console.error("Vector fetch failed, falling back to category:", err.message);
+  }
+
+  // 3. Fallback: If Vector Search returned nothing (or failed), use Category Search
+  if (!candidates || candidates.length === 0) {
+    // console.log("Using Category Fallback for recommendations");
     candidates = await getCandidateItems(currentItem.category_id, itemId, limit);
   }
 

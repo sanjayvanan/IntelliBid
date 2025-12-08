@@ -8,7 +8,8 @@ import { useInView } from 'react-intersection-observer';
 
 const DisplayItems = () => {
   const dispatch = useDispatch();
-  const { items, loading, hasMore } = useSelector((state) => state.items);
+  // Get error state from store
+  const { items, loading, hasMore, error } = useSelector((state) => state.items);
   const [page, setPage] = useState(1);
 
   const { ref, inView } = useInView({
@@ -23,14 +24,16 @@ const DisplayItems = () => {
     setPage(1);
   }, [dispatch]);
 
-  // Infinite Scroll
+  // Infinite Scroll Logic
   useEffect(() => {
-    if (inView && hasMore && !loading) {
+    // CRITICAL FIX: Added !error check. 
+    // If there is an error (like 429), do NOT try to fetch the next page.
+    if (inView && hasMore && !loading && !error) {
       const nextPage = page + 1;
       dispatch(fetchItems({ page: nextPage }));
       setPage(nextPage);
     }
-  }, [inView, hasMore, loading, page, dispatch]);
+  }, [inView, hasMore, loading, page, dispatch, error]);
 
   return (
     <div className="display-items">
@@ -42,14 +45,10 @@ const DisplayItems = () => {
             ? item.image_url[0] 
             : item.image_url;
           
-          // Helper to check if item is new (e.g. created in last 24h)
-          // const isNew = new Date(item.start_time) > new Date(Date.now() - 86400000);
-
           return (
             <div key={item.id} className="auction-card">
               <Link to={`/item-details/${item.id}`}>
                 <div className="auction-image">
-                   {/* Optional Badge */}
                    <span className="card-badge">Live</span>
                   
                   {itemImage ? (
@@ -88,8 +87,16 @@ const DisplayItems = () => {
         })}
       </div>
 
+      {/* Error Message Display */}
+      {error && (
+        <div style={{ textAlign: 'center', padding: '20px', color: '#e7195a', fontWeight: 'bold' }}>
+          {error}. Please refresh the page to try again.
+        </div>
+      )}
+
       {/* Infinite Scroll Sensor */}
-      {hasMore && (
+      {/* Only show loader if we have more AND no error */}
+      {hasMore && !error && (
         <div ref={ref} className="scroll-trigger">
           {loading ? (
             <span className="loading-text">
@@ -105,7 +112,7 @@ const DisplayItems = () => {
         </div>
       )}
       
-      {!hasMore && items.length > 0 && (
+      {!hasMore && items.length > 0 && !error && (
         <div className="scroll-trigger">
           You've reached the end!
         </div>
