@@ -8,6 +8,7 @@ const {
   generatePresignedUrl,
 } = require("../utils/s3Utils");
 const { embedText, generateAttributeSchema } = require("./aiService");
+const { scheduleAuctionEnd } = require("../jobs/auctionQueue");
 
 const BUCKET = process.env.BUCKET_NAME;
 const REGION = process.env.BUCKET_REGION;
@@ -134,8 +135,17 @@ const createItem = async (item) => {
   const { rows } = await db.query(insertQuery, values);
   const itemId = rows[0].id;
 
-  // Generate Embedding
+  //  Schedule the background job immediately
   try {
+    await scheduleAuctionEnd(itemId, end_time);
+  } catch (qError) {
+    console.error("Failed to schedule auction close job:", qError);
+    //  The item is created, but won't auto-close. 
+    // The 'syncActiveAuctions' on server restart will catch this later.
+  }
+
+  // Generate Embedding
+ try {
     const textToEmbed = [name, description].filter(Boolean).join(". ");
     if (textToEmbed) {
       const embedding = await embedText(textToEmbed);
@@ -152,28 +162,27 @@ const createItem = async (item) => {
   // Upload Images
   if (processedImages && processedImages.length > 0) {
     const uploadPromises = processedImages.map(async (img) => {
-      const key = `${randomName()}.jpg`;
-      await s3.send(
-        new PutObjectCommand({
-          Bucket: BUCKET,
-          Key: key,
-          Body: img.buffer,
-          ContentType: img.mimetype,
-          CacheControl: "public, max-age=31536000, immutable",
-          Metadata: { itemId: String(itemId) },
-        })
-      );
-      return `https://${BUCKET}.s3.${REGION}.amazonaws.com/${key}`;
-    });
-
-    const uploadedUrls = await Promise.all(uploadPromises);
-    await db.query(`UPDATE items SET image_url = $1 WHERE id = $2`, [
-      uploadedUrls,
-      itemId,
-    ]);
+        const key = `${randomName()}.jpg`;
+        await s3.send(
+          new PutObjectCommand({
+            Bucket: BUCKET,
+            Key: key,
+            Body: img.buffer,
+            ContentType: img.mimetype,
+            CacheControl: "public, max-age=31536000, immutable",
+            Metadata: { itemId: String(itemId) },
+          })
+        );
+        return `https://${BUCKET}.s3.${REGION}.amazonaws.com/${key}`;
+      });
+  
+      const uploadedUrls = await Promise.all(uploadPromises);
+      await db.query(`UPDATE items SET image_url = $1 WHERE id = $2`, [
+        uploadedUrls,
+        itemId,
+      ]);
   }
 
-  // Return final item with category name
   const { rows: finalRows } = await db.query(
     `SELECT items.*, categories.name AS category_name
      FROM items

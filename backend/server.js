@@ -12,7 +12,7 @@ const paymentRoutes = require("./routes/payment");
 const chatRoutes = require("./routes/chat");
 const connectMongo = require("./db/mongo");
 // Start background jobs
-require('./jobs/auctionCloser'); 
+const { syncActiveAuctions } = require('./jobs/auctionQueue');
 
 const app = express();
 app.use(helmet());
@@ -55,7 +55,12 @@ io.on("connection", (socket) => {
 
 // Start
 connectMongo()
-  .then(() => {
+  .then(async () => {  // Mark as async
+    
+    // 🔥 Start the Sync
+    // This ensures any active items in DB get a job in Redis
+    await syncActiveAuctions();
+
     server.listen(process.env.PORT || 4000, () =>
       console.log("listening on port", process.env.PORT || 4000)
     );
