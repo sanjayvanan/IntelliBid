@@ -55,11 +55,13 @@ io.on("connection", (socket) => {
 
 // Start
 connectMongo()
-  .then(async () => {  // Mark as async
+  .then(() => { // i removed the async here (so the system wont wait for it)
     
-    // 🔥 Start the Sync
-    // This ensures any active items in DB get a job in Redis
-    await syncActiveAuctions();
+    // SCALABILITY FIX:
+    // Run sync in the background without blocking server startup.
+    syncActiveAuctions()
+      .then(() => console.log("✅ Background sync initiated"))
+      .catch(err => console.error("❌ Background sync failed:", err));
 
     server.listen(process.env.PORT || 4000, () =>
       console.log("listening on port", process.env.PORT || 4000)

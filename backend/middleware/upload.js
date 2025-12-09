@@ -1,7 +1,11 @@
 const multer = require("multer");
 const sharp = require("sharp");
 
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({ storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024, // Limit to 5MB (in bytes)
+  }
+ });
 
 const processImage = async (req, res, next) => {
   try {
