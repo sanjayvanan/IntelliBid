@@ -1,18 +1,23 @@
 # IntelliBid · [Live Demo](https://intelli-bid.vercel.app)
 
-IntelliBid is a modern, AI-powered auction platform that enables real-time bidding, intelligent item recommendations, automated auction management, and seamless online product selling. With a hybrid database architecture, it combines real-time sockets, vector similarity search, and generative AI to deliver a powerful, high-performance auction and e-commerce experience.
+IntelliBid is a modern, AI-powered auction platform that enables real-time bidding, intelligent item recommendations, automated auction management, and seamless online product selling. With a **hybrid high-performance architecture**, it combines Redis caching, BullMQ event queues, real-time sockets, and generative AI to deliver a scalable e-commerce experience.
 
 ## 🚀 Key Features
 
-### **1️⃣ Core Auction Functionality**
-- **Real-Time Bidding**: Live bid updates using WebSockets (Socket.io), ensuring instant feedback for all participants.
+### **1️⃣ High-Performance Architecture**
+- **⚡ Hybrid Real-Time System**: Uses a "Look-Aside" caching strategy. The initial feed loads instantly via **Redis Cache** (REST API), while live price updates are injected via **WebSockets (Socket.io)**. This ensures zero database load for browsing users while keeping data 100% fresh.
+- **🔄 Event-Driven Job Queue**: Powered by **BullMQ** (Redis-based message queue). Auction closures are scheduled as precise delayed jobs, meaning the CPU sleeps until the exact millisecond an auction ends, ensuring maximum resource efficiency without constant database polling.
+- **🛡️ Resilience & Recovery**: Includes a "Safety Sync" mechanism that automatically recovers and reschedules auction timers from PostgreSQL if the server restarts or Redis is flushed.
+
+### **2️⃣ Core Auction Functionality**
+- **Live Bidding**: Instant visual feedback on price changes across the Homepage and Item Details without page refreshes.
 - **Proxy Bidding System**: Users set their maximum bid, and the system automatically bids the minimum amount needed to maintain their lead, up to their limit.
-- **Automated Auction Management**: A dedicated background process autonomously manages the auction lifecycle, monitoring expired listings, updating their status from 'active' to 'ended', and triggering automated email notifications to winners.
-- **Edit Restrictions**: Sellers can edit listings to correct errors, but the system locks the listing as soon as the first bid is placed to ensure fairness.
+- **Smart Auction Closing**: Handles winner determination, payment status updates, and automated email notifications using distributed workers.
+- **Voice Search**: Integrated browser-based speech recognition allows users to search for items using voice commands.
 
 ---
 
-### **2️⃣ AI-Powered Intelligence**
+### **3️⃣ AI-Powered Intelligence**
 - **🤖 IntelliBid Assistant (Chatbot)**: A file-based RAG (Retrieval-Augmented Generation) chatbot that answers user questions about platform policies, fees, and features. It reads from a dynamic knowledge base (`policies.md`) to provide accurate, context-aware support.
 - **✨ Smart Attribute Auto-Detection**: Uses Vector Search to find similar items in the database and reuse their specification fields (e.g., "Battery Health" for phones). If no match is found, it uses Gemini AI to generate a custom schema of relevant attributes for that specific product.
 - **📝 AI Description Generator**: Auto-generate professional item descriptions using Google Gemini AI based on the item name and category.
@@ -21,22 +26,15 @@ IntelliBid is a modern, AI-powered auction platform that enables real-time biddi
 
 ---
 
-### **3️⃣ Media & Asset Handling**
+### **4️⃣ Media & Asset Handling**
 - **Multi-Image Support**: Upload and display multiple images for auction items via AWS S3.
 - **Smart Image Optimization**: Automatically resizes and optimizes uploaded images using `Sharp` before storing them in AWS S3 for improved performance.
 
 ---
 
-### **4️⃣ Data & Storage Architecture**
-- **Hybrid Database Architecture**:
-  - **MongoDB**: Manages user authentication and profiles.
-  - **PostgreSQL**: Stores transactional data like items, bids, and vector embeddings (`pgvector`).
-
----
-
 ### **5️⃣ Security, Payments & Protection**
 - **Secure Authentication**: JSON Web Token (JWT) based authentication.
-- **Secure Payments**: Integrated Razorpay gateway enables seamless and secure payment processing for auction winners.
+- **Secure Payments**: Integrated Razorpay gateway enables seamless and secure payment processing for auction winners, including address collection via modal.
 - **API Rate Limiting**: Prevents abuse with global rate limits and specific quotas for AI generation features using `express-rate-limit`.
 
 ---
@@ -48,28 +46,30 @@ IntelliBid is a modern, AI-powered auction platform that enables real-time biddi
 - **Library**: React (Vite)
 - **State Management**: Redux Toolkit
 - **Routing**: React Router DOM
-- **Markdown Rendering**: `react-markdown` (for Chatbot responses)
 - **Real-Time**: Socket.io Client
 - **Styling**: CSS Modules / Custom CSS
+- **Voice**: Web Speech API
 
 ### Backend
 - **Runtime**: Node.js
 - **Framework**: Express.js
 - **Databases**:
-  - MongoDB (Mongoose)
-  - PostgreSQL (pg) with `pgvector` extension
-- **AI & ML**: Google Generative AI (Gemini 1.5 Flash & Text Embedding 004)
-- **Storage**: AWS S3
-- **Email**: Nodemailer
-- **Scheduling**: Node-cron
+  - **PostgreSQL**: Primary transactional data (Items, Bids) with `pgvector` for AI search.
+  - **MongoDB**: User profiles and authentication.
+  - **Redis**: Caching (Feed & Items) and Message Queue backing.
+- **Background Jobs**: BullMQ (running on IORedis).
+- **AI & ML**: Google Generative AI (Gemini 1.5 Flash & Text Embedding 004).
+- **Storage**: AWS S3.
+- **Email**: Nodemailer.
 
 ## ⚙️ Prerequisites
 
 Before running the application, ensure you have the following installed:
 
-- Node.js (v16 or higher)
+- Node.js (v18 or higher)
 - PostgreSQL (with `pgvector` extension enabled)
 - MongoDB (Local or Atlas)
+- Redis Server (Local or Cloud)
 - An AWS Account (S3 Bucket)
 - Google Gemini API Key
 
@@ -127,6 +127,9 @@ EMAIL_FROM="IntelliBid <no-reply@intellibid.com>"
 # Payment Gateway (Razorpay)
 RAZORPAY_KEY_ID=your_razorpay_key_id
 RAZORPAY_KEY_SECRET=your_razorpay_key_secret
+
+#reddis
+REDIS_URL=your_redis_cli
 ```
 
 **Note**: Ensure the pgvector extension is enabled in your PostgreSQL database (`CREATE EXTENSION vector;`).
