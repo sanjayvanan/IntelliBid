@@ -62,6 +62,74 @@ IntelliBid is a modern, AI-powered auction platform that enables real-time biddi
 - **Storage**: AWS S3.
 - **Email**: Nodemailer.
 
+---
+
+## 🗄️ Database Schema
+
+IntelliBid uses a **Hybrid Database Architecture**. Transactional data (Items, Bids) is stored in **PostgreSQL** for ACID compliance and Vector Search, while User profiles are stored in **MongoDB** for flexibility.
+
+### 🐘 PostgreSQL Tables (Transactional & Vector Data)
+
+#### 1. `items`
+The core table storing auction listings.
+
+| Column | Type | Description |
+| :--- | :--- | :--- |
+| `id` | INTEGER | Unique identifier for the item. |
+| `name` | VARCHAR(255) | Title of the item. |
+| `description` | TEXT | Detailed description of the item. |
+| `start_price` | NUMERIC | Starting bid amount. |
+| `current_price` | NUMERIC | Current highest bid (visible price). |
+| `image_url` | TEXT[] | Array of image URLs (stored in AWS S3). |
+| `start_time` | TIMESTAMPTZ | Auction start time. |
+| `end_time` | TIMESTAMPTZ | Auction expiration time. |
+| `status` | VARCHAR(50) | Status: `'active'`, `'ended'`, or `'sold'`. |
+| `condition` | VARCHAR(50) | Item condition (e.g., 'New', 'Used'). |
+| `seller_id` | VARCHAR(255) | Reference to **MongoDB User ID**. |
+| `category_id` | INTEGER | Foreign key linking to the `categories` table. |
+| `winner_id` | TEXT | Reference to **MongoDB User ID** of the winner (set upon closing). |
+| `payment_status` | TEXT | Status of payment (e.g., 'pending', 'paid'). |
+| `razorpay_payment_id` | TEXT | Transaction ID from Razorpay. |
+| `shipping_address` | TEXT | Shipping address collected from the winner. |
+| `proxy_max_bid` | NUMERIC | **(Hidden)** The leader's maximum willingness to pay. |
+| `proxy_bidder_id` | VARCHAR(255) | **(Hidden)** MongoDB `_id` of the current proxy leader. |
+| `dynamic_details` | JSONB | Flexible schema for specific attributes (e.g., `{ "ram": "8GB" }`). |
+| `return_status` | VARCHAR(50) | Status for return requests (if applicable). |
+| `description_embedding` | VECTOR | `pgvector` embedding for AI Similarity Search. |
+
+#### 2. `bids`
+Records every bid placed (excluding internal proxy auto-bids).
+
+| Column | Type | Description |
+| :--- | :--- | :--- |
+| `id` | INTEGER | Unique bid ID. |
+| `amount` | NUMERIC | The bid amount. |
+| `item_id` | INTEGER | Foreign Key linking to `items`. |
+| `bidder_id` | VARCHAR(255) | Reference to **MongoDB User ID**. |
+| `bid_time` | TIMESTAMPTZ | Time the bid was recorded. |
+| `created_at` | TIMESTAMPTZ | Record creation timestamp. |
+
+#### 3. `categories`
+Categorizes items for filtering and organization.
+
+| Column | Type | Description |
+| :--- | :--- | :--- |
+| `id` | INTEGER | Unique category ID. |
+| `name` | VARCHAR(255) | Category name (e.g., 'Electronics', 'Antiques'). |
+
+---
+
+### 🍃 MongoDB Collections (User Data)
+
+#### `users`
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `_id` | ObjectId | Unique User ID (Referenced by Postgres tables). |
+| `email` | String | User's email address (unique). |
+| `password` | String | Hashed password. |
+
+---
+
 ## ⚙️ Prerequisites
 
 Before running the application, ensure you have the following installed:
