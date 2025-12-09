@@ -120,6 +120,24 @@ const Profile = () => {
     }
   };
 
+
+  const handleReturnClick = async (itemId) => {
+    if (!window.confirm("Are you sure you want to request a return for this item?")) return;
+
+    try {
+      await axios.post(
+        `${API_URL}/api/items/${itemId}/return`,
+        {},
+        { headers: { Authorization: `Bearer ${user.token}` } }
+      );
+      alert("Return requested successfully!");
+      fetchWonItems(); // Refresh the list to show the new status
+    } catch (error) {
+      console.error(error);
+      alert(error.response?.data?.error || "Failed to request return");
+    }
+  };
+
   return (
     <div className="display-items profile-page">
       <div className="profile-header">
@@ -155,12 +173,37 @@ const Profile = () => {
               {/* Payment section NOT inside Link */}
               <div className="payment-actions">
                 {item.payment_status === "paid" ? (
-                  <span className="payment-status payment-status--paid">
-                    Paid ✓
-                  </span>
+                  <div style={{ width: '100%', textAlign: 'center' }}>
+                    
+                    {/* 1. Paid Badge */}
+                    <span className="payment-status payment-status--paid" style={{justifyContent: 'center', marginBottom: '4px'}}>
+                      Paid ✓
+                    </span>
+
+                    {/* 2. Return Logic Section */}
+                    <div className="return-wrapper">
+                      {item.return_status === 'requested' ? (
+                        <span className="status-badge status-badge--requested">
+                          ⏳ Return Requested
+                        </span>
+                      ) : item.return_status === 'returned' ? (
+                        <span className="status-badge status-badge--returned">
+                          ↩ Item Returned
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => handleReturnClick(item.id)}
+                          className="return-btn"
+                        >
+                          Request Return
+                        </button>
+                      )}
+                    </div>
+
+                  </div>
                 ) : (
                   <button
-                    onClick={() => handlePayClick(item)} // Changed to open modal
+                    onClick={() => handlePayClick(item)}
                     className="payment-button"
                   >
                     Pay Now (UPI/Card)

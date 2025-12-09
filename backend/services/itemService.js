@@ -620,6 +620,18 @@ const editItem = async (itemId, userId, updates) => {
 };
 
 
+const requestReturn = async (itemId, userId) => {
+  const query = `
+    UPDATE items
+    SET return_status = 'requested'
+    WHERE id = $1 AND winner_id = $2 AND payment_status = 'paid'
+    RETURNING *
+  `;
+  const { rows } = await db.query(query, [itemId, userId]);
+  return rows[0];
+};
+
+
 module.exports = {
   getItemsBySeller,
   getItemById,
@@ -636,4 +648,5 @@ module.exports = {
   processBidTransaction,
   getSuggestedAttributes,
   editItem,
+  requestReturn,
 };

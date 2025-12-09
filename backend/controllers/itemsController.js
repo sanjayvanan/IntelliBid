@@ -454,6 +454,28 @@ const editItem = async (req, res) => {
   }
 };
 
+const requestItemReturn = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user._id.toString();
+
+    const updatedItem = await itemService.requestReturn(id, userId);
+
+    if (!updatedItem) {
+      return res.status(400).json({ error: "Item not eligible for return (must be won and paid for)." });
+    }
+
+    // Invalidate cache since item status changed
+    const redis = require("../db/redis"); // Ensure redis is imported if not already top-level
+    await redis.del(`item:${id}`);
+
+    res.json({ message: "Return requested successfully", item: updatedItem });
+  } catch (error) {
+    console.error("Return Request Error:", error);
+    res.status(500).json({ error: "Failed to process return request" });
+  }
+};
+
 module.exports = {
   getMyItems,
   getItem,
@@ -466,5 +488,6 @@ module.exports = {
   analyzeListing,
   getCategories,
   generateAttributes,
-  editItem
+  editItem,
+  requestItemReturn,
 };

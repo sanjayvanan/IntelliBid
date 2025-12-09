@@ -15,7 +15,8 @@ const {
   analyzeListing,
   getCategories,
   generateAttributes  ,
-  editItem
+  editItem,
+  requestItemReturn
 } = require("../controllers/itemsController");
 
 // Allow only 10 AI requests every 30 minutes per IP
@@ -37,6 +38,7 @@ router.post("/generate-description", requireAuth, aiLimiter, generateDescription
 router.post("/generate-attributes", requireAuth, aiLimiter, generateAttributes);
 router.post("/analyze", requireAuth, aiLimiter, analyzeListing);
 router.get("/recommend/:id", requireAuth, getRecommendations);
+router.post("/:id/return", requireAuth, requestItemReturn);
 router.get("/:id", getItem);
 router.put("/:id", requireAuth, editItem);
 router.patch("/bidup/:id", requireAuth, updateItem);

@@ -172,3 +172,57 @@
   align-items: center;
   gap: 6px;
 }
+
+.return-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed #e5e7eb;
+}
+
+.return-btn {
+  background-color: transparent;
+  border: 1px solid #d1d5db;
+  color: #4b5563;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  width: 100%;
+  transition: all 0.2s ease;
+}
+
+.return-btn:hover {
+  background-color: #f3f4f6;
+  border-color: #9ca3af;
+  color: #1f2937;
+}
+
+.status-badge {
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 99px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.status-badge--requested {
+  background-color: #fff7ed; /* Light Orange Bg */
+  color: #c2410c;           /* Deep Orange Text */
+  border: 1px solid #ffedd5;
+}
+
+.status-badge--returned {
+  background-color: #fef2f2; /* Light Red Bg */
+  color: #b91c1c;           /* Deep Red Text */
+  border: 1px solid #fee2e2;
+}
