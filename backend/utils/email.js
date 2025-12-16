@@ -1,16 +1,18 @@
 const nodemailer = require("nodemailer");
 
+//Automatically use secure connection if port is 465
+const isSecure = process.env.SMTP_PORT == 465;
+
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
   port: process.env.SMTP_PORT,
-  secure: false,
+  secure: isSecure, // true for 465, false for other ports
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
 });
 
-// Updated to accept paymentLink
 const sendWinnerEmail = async (userEmail, itemName, bidAmount, paymentLink) => {
   try {
     const info = await transporter.sendMail({
@@ -38,8 +40,11 @@ const sendWinnerEmail = async (userEmail, itemName, bidAmount, paymentLink) => {
       `,
     });
     console.log("Email sent: %s", info.messageId);
+    return info; 
   } catch (error) {
     console.error("Error sending email:", error);
+    //Throw the error so BullMQ knows the job failed
+    throw error; 
   }
 };
 

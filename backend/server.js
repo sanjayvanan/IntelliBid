@@ -15,6 +15,8 @@ const connectMongo = require("./db/mongo");
 const { syncActiveAuctions } = require('./jobs/auctionQueue');
 
 const app = express();
+
+app.set('trust proxy', 1);
 app.use(helmet());
 
 //Configure Rate Limiting
