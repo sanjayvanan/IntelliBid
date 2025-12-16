@@ -10,11 +10,11 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 // Main text model for description + (optional) re-ranking is gemini-2.5-flash
 // this is the Main model... flash lite is temp because of the Load in the flash
 
-const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+// const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-// const model = genAI.getGenerativeModel({
-//   model: "gemini-2.5-flash-lite"
-// });
+const model = genAI.getGenerativeModel({
+  model: "gemini-2.5-flash-lite"
+});
 
 
 
