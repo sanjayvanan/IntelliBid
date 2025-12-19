@@ -13,6 +13,10 @@ IntelliBid is a modern, AI-powered auction platform that enables real-time biddi
 - **Live Bidding**: Instant visual feedback on price changes across the Homepage and Item Details without page refreshes.
 - **Proxy Bidding System**: Users set their maximum bid, and the system automatically bids the minimum amount needed to maintain their lead, up to their limit.
 - **Smart Auction Closing**: Handles winner determination, payment status updates, and automated email notifications using distributed workers.
+- **🛡️ Automated Deadbeat Protection**: A self-healing system that monitors for non-paying winners. If a winner fails to pay within 24 hours, the system automatically:
+  - **Revokes** the win and removes the invalid bids.
+  - **Sequentially offers the item** to the next highest bidder if the previous bidder fails to pay, continuing down the bid history until a payment is completed.
+  - **Auto-Relists** the item if no other valid bidders exist.
 - **Voice Search**: Integrated browser-based speech recognition allows users to search for items using voice commands.
 
 ---
@@ -161,7 +165,7 @@ npm install
 ```env
 # Server Configuration
 PORT=4000
-FRONTEND_PORT=http://localhost:5173
+FRONTEND_PORT=http://localhost:5173  # The primary frontend URL for CORS
 
 # Database - MongoDB (Users)
 MONGO_URI=mongodb://localhost:27017/intellibid
