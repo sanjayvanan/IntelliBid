@@ -404,14 +404,13 @@ const processBidTransaction = async (
   newPrice,
   newLeaderId,
   newProxyMax,
-  bidsToInsert // Array of { bidder_id, amount }
+  bidsToInsert 
 ) => {
   const client = await db.connect();
   try {
     await client.query("BEGIN");
 
     // 1. Insert Bid History Rows
-    // We loop through bidsToInsert (usually 1 or 2 rows)
     for (const bid of bidsToInsert) {
         await client.query(
             `INSERT INTO bids(amount, item_id, bidder_id, created_at) VALUES($1, $2, $3, NOW())`,
@@ -419,7 +418,8 @@ const processBidTransaction = async (
         );
     }
 
-    // 2. Update Item State
+    // 2. Update Item State (FIXED FOR PROXY BIDS)
+    // We update ONLY if the database state is compatible with our calculated move.
     const updateQuery = `
       UPDATE items 
       SET 
@@ -427,16 +427,32 @@ const processBidTransaction = async (
         proxy_max_bid = $2, 
         proxy_bidder_id = $3
       WHERE id = $4 
+        AND (
+          -- Case A: Standard Outbid (Price goes UP)
+          current_price < $1
+          
+          -- Case B: Proxy Update (Price stays SAME, but Max Limit goes UP)
+          OR (current_price = $1 AND proxy_max_bid < $2)
+          
+          -- Case C: First Bidder (No previous bidder exists)
+          OR proxy_bidder_id IS NULL
+        )
       RETURNING *
     `;
     
-    // Ensure numbers are formatted for Numeric/Decimal columns
-    await client.query(updateQuery, [
+    const updateResult = await client.query(updateQuery, [
         newPrice.toFixed(2),
         newProxyMax.toFixed(2),
         newLeaderId,
         itemId
     ]);
+
+    // 🛑 CHECK: Did the update actually happen?
+    if (updateResult.rowCount === 0) {
+        // If 0 rows updated, it means the item state changed in the background 
+        // (e.g., someone else bid higher, or the price moved).
+        throw new Error("Bid failed: The item price has changed. Please refresh and try again.");
+    }
     
     // 3. Fetch full updated item for response
     const fullItemQuery = `
@@ -451,7 +467,6 @@ const processBidTransaction = async (
 
     return {
       item: itemResult.rows[0],
-      // We return the last bid inserted as "latest_bid" for reference
       last_bid_amount: bidsToInsert.length > 0 ? bidsToInsert[bidsToInsert.length - 1].amount : newPrice
     };
   } catch (error) {

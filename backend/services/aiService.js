@@ -20,7 +20,7 @@ const model = genAI.getGenerativeModel({
 
 // Embedding model for pgvector
 const embeddingModel = genAI.getGenerativeModel({
-  model: "text-embedding-004",
+  model: "gemini-embedding-001",
 });
 
 
@@ -106,9 +106,15 @@ const embedText = async (text) => {
     throw new Error("Text is required for embedding");
   }
 
-  const result = await embeddingModel.embedContent(text);
-  const embedding = result.embedding?.values;
+  const result = await embeddingModel.embedContent({
+    content: { parts: [{ text }] },
+    outputDimensionality: 768 
+  });
 
+  // 👇 ADD THIS LINE HERE 👇
+  const embedding = result.embedding.values; 
+
+  // Now this check will work because 'embedding' exists
   if (!Array.isArray(embedding) || !embedding.length) {
     throw new Error("Empty embedding returned from Gemini");
   }
